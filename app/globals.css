@@ -1,20 +1,32 @@
-@layer base {
-  :root {
-    --font-geist-sans: var(--font-geist-sans);
-    --font-clash-display: var(--font-clash-display);
-    --font-jetbrains-mono: var(--font-jetbrains-mono);
-  }
+@import "tailwindcss";
+
+@theme {
+  --color-background: #0a0a0f;
+  --color-foreground: #ffffff;
+  --color-accent: #00e6b4;
+  --color-accent-hover: #00cc9f;
+  --color-muted: #a1a1aa;
+  --color-overlay-dark: rgba(0, 0, 0, 0.55);
+  --color-overlay-purple: rgba(88, 28, 135, 0.3);
+  --color-pill-border: rgba(255, 255, 255, 0.5);
+
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-clash-display), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), 'Courier New', monospace;
 }
 
-/* Apply fonts using CSS classes */
-.font-sans {
-  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
 }
 
-.font-display {
-  font-family: var(--font-clash-display), system-ui, -apple-system, sans-serif;
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
 }
 
-.font-mono {
-  font-family: var(--font-jetbrains-mono), 'Courier New', monospace;
+/* Selection highlight */
+::selection {
+  background-color: var(--color-accent);
+  color: var(--color-background);
 }
