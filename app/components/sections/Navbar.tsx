@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 
 const navLinks = [
     { label: 'Schedule', href: '#schedule' },
@@ -12,19 +13,9 @@ export default function Navbar() {
         <nav className="absolute top-0 left-0 right-0 z-50 px-6 md:px-12 py-5">
             <div className="max-w-7xl mx-auto flex items-center justify-between">
                 {/* Logo / Brand */}
-                <Link href="/" className="flex items-center gap-2 group">
+                <Link href="/" className="flex items-center gap-2 group -ml-[150px]">
                     {/* Dot grid icon */}
-                    <div className="grid grid-cols-3 gap-[3px]">
-                        {Array.from({ length: 9 }).map((_, i) => (
-                            <div
-                                key={i}
-                                className="w-[5px] h-[5px] rounded-full bg-accent group-hover:bg-white transition-colors duration-300"
-                            />
-                        ))}
-                    </div>
-                    <span className="font-display text-white text-lg font-semibold tracking-tight ml-1">
-                        CIFest
-                    </span>
+                    <Image src="/logo.svg" alt="Logo" width={170} height={170} />
                 </Link>
 
                 {/* Nav links — hidden on mobile */}
