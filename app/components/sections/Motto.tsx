@@ -1,11 +1,11 @@
 export default function Motto() {
     return (
-        <section className="relative min-h-screen flex items-center overflow-hidden -mt-px">
+        <section className="relative min-h-screen flex items-start justify-start pt-20 overflow-hidden -mt-px md:items-center md:pt-0">
             {/* Gradient overlay — fades in from top so there's no hard line after the Hero */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/40" />
 
             <div className="relative z-10 w-full px-4 sm:px-6 md:px-12 lg:px-16 py-16 md:py-24">
-                <div className="max-w-[90%]">
+                <div className="w-full max-w-none">
                     {/* Label */}
                     <span className="text-muted text-xs sm:text-sm uppercase tracking-widest mb-6 block">
                         Conference motto
@@ -14,7 +14,12 @@ export default function Motto() {
                     {/* Big motto text — massive like the reference */}
                     <h2
                         className="font-display text-[clamp(2.2rem,6.5vw,6.5rem)] font-semibold leading-[1.05] text-white mb-10 tracking-tight"
-                        style={{ textShadow: '0 2px 40px rgba(0,0,0,0.4)' }}
+                        style={{
+                            textShadow: '0 2px 40px rgba(0,0,0,0.4)',
+                            textAlign: 'justify',
+                            textAlignLast: 'left',
+                            hyphens: 'auto',
+                        }}
                     >
                         More than just an event – it&apos;s a strategic investment in the future of our continent, empowering the next generation of African tech innovators.
                     </h2>
