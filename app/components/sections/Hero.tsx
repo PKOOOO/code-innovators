@@ -38,7 +38,7 @@ export default function Hero({
             ) : (
                 /* Fallback gradient when no image is set yet */
                 <div className="fixed inset-0 -z-10">
-                    <div className="absolute inset-0 bg-gradient-to-br from-purple-950 via-[#0d0d1a] to-background" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#222222] via-[#1a1a1a] to-background" />
                     <div className="absolute inset-0 bg-black/30" />
                 </div>
             )}

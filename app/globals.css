@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #0a0a0f;
+  --color-background: #1a1a1a;
   --color-foreground: #ffffff;
   --color-accent: #00e6b4;
   --color-accent-hover: #00cc9f;
   --color-muted: #a1a1aa;
   --color-overlay-dark: rgba(0, 0, 0, 0.55);
-  --color-overlay-purple: rgba(88, 28, 135, 0.3);
+  --color-overlay-purple: rgba(30, 30, 30, 0.3);
   --color-pill-border: rgba(255, 255, 255, 0.5);
 
   --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
