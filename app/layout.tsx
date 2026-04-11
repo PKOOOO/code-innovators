@@ -2,11 +2,19 @@ import "./globals.css";
 import type { Metadata } from 'next'
 import localFont from 'next/font/local'
 import { GeistSans } from 'geist/font'
+import { Geist } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: 'Code Innovation Festival — Inter-School Tech Competition',
   description:
     'Join the Code Innovation Festival by Code Innovators Academy — an inter-school tech competition for students in Mombasa, Kenya. September 27, 2025.',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+  },
 }
 
 // Clash Display for titles and hero
@@ -141,7 +149,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${clashDisplay.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" className={cn(GeistSans.variable, clashDisplay.variable, jetbrainsMono.variable, "font-sans", geist.variable)}>
       <body className="font-sans">{children}</body>
     </html>
   )

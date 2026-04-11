@@ -2,6 +2,7 @@ import { client } from '@/sanity/lib/client'
 import { heroQuery } from '@/sanity/lib/queries'
 import Navbar from './components/sections/Navbar'
 import Hero from './components/sections/Hero'
+import Motto from './components/sections/Motto'
 
 // Fallback data when Sanity document hasn't been created yet
 const fallbackHero = {
@@ -31,16 +32,11 @@ export default async function Home() {
         secondaryCta={data.secondaryCta}
       />
 
+      <Motto />
+
       {/* Future sections will go here */}
       <section className="min-h-screen bg-background px-6 md:px-12 py-24">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="font-display text-4xl font-bold text-white">
-            About the Festival
-          </h2>
-          <p className="text-muted mt-4 text-lg max-w-2xl">
-            More sections coming soon — About, Categories, Judging, Sponsors, Register, and Footer.
-          </p>
-        </div>
+
       </section>
     </main>
   )
