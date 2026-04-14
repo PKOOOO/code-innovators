@@ -2,14 +2,14 @@ import Link from 'next/link'
 
 export default function Motto() {
     return (
-        <section className="relative min-h-screen flex items-start justify-start pt-20 overflow-hidden -mt-px md:items-center md:pt-0 bg-background">
+        <section className="relative min-h-screen flex items-start justify-start pt-20 overflow-hidden -mt-px md:items-center md:pt-0">
             {/* Gradient overlay — fades in from top so there's no hard line after the Hero */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/40" />
 
             <div className="relative z-10 w-full px-4 sm:px-6 md:px-12 lg:px-16 py-16 md:py-24">
                 <div className="w-full max-w-none">
                     {/* Label */}
-                    <span className="text-muted text-xs sm:text-sm uppercase tracking-widest mb-6 block">
+                    <span className="text-white text-xs sm:text-sm uppercase tracking-widest mb-6 block">
                         Conference motto
                     </span>
 
@@ -31,7 +31,7 @@ export default function Motto() {
                         href="/manifesto"
                         className="inline-block bg-[#8b7ff5]/70 hover:bg-[#8b7ff5] transition-colors text-white font-medium px-6 py-2.5 rounded-lg text-sm backdrop-blur-sm"
                     >
-                        Manifesto
+                        Target Audience
                     </Link>
                 </div>
             </div>

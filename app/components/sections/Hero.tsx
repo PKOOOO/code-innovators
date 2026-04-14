@@ -24,7 +24,7 @@ export default function Hero({
         <section className="relative min-h-[100dvh] w-full overflow-hidden">
             {/* Background image — absolute so it scrolls out of view as the user scrolls */}
             {backgroundImage ? (
-                <div className="absolute inset-0">
+                <div className="fixed inset-0 -z-10">
                     <Image
                         src={backgroundImage}
                         alt={title}
@@ -33,14 +33,12 @@ export default function Hero({
                         priority
                         quality={90}
                     />
-                    {/* Dark overlay */}
-                    <div className="absolute inset-0 bg-black/55 mix-blend-multiply" />
                     {/* Purple tint overlay */}
                     <div className="absolute inset-0 bg-overlay-purple" />
                 </div>
             ) : (
                 /* Fallback gradient when no image is set yet */
-                <div className="absolute inset-0">
+                <div className="fixed inset-0 -z-10">
                     <div className="absolute inset-0 bg-gradient-to-br from-[#222222] via-[#1a1a1a] to-background" />
                     <div className="absolute inset-0 bg-black/30" />
                 </div>
@@ -68,10 +66,10 @@ export default function Hero({
                                 <TypewriterEffectSmooth
                                     words={[{
                                         text: lastWord,
-                                        className: 'text-accent dark:text-accent',
+                                        className: 'text-white dark:text-white',
                                     }]}
                                     className="font-display"
-                                    cursorClassName="bg-accent"
+                                    cursorClassName="bg-purple-500"
                                 />
                             </div>
                         )
@@ -102,8 +100,6 @@ export default function Hero({
                 </div>
             </div>
 
-            {/* Bottom blur-fade so the image dissolves smoothly into the next section */}
-            <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-background via-background/60 to-transparent pointer-events-none" />
         </section>
     )
 }

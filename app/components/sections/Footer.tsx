@@ -68,7 +68,7 @@ export default function Footer() {
 
             <div className="px-4 sm:px-6 md:px-12 lg:px-16 pt-16 md:pt-24 pb-10">
                 {/* Main row */}
-                <div className="flex flex-col md:flex-row md:justify-between gap-14 md:gap-8">
+                <div className="flex flex-col md:flex-row md:justify-start gap-14 md:gap-164">
                     {/* Left — heading + socials */}
                     <div className="flex flex-col gap-8">
                         <h2 className="font-display text-[clamp(2.8rem,7vw,6rem)] font-semibold leading-[1.05] text-white tracking-tight">
@@ -93,7 +93,7 @@ export default function Footer() {
                     </div>
 
                     {/* Right — nav links */}
-                    <nav aria-label="Footer navigation" className="md:mr-24">
+                    <nav aria-label="Footer navigation">
                         <ul className="grid grid-cols-1 gap-y-1.5">
                             {footerLinks.map((link) => (
                                 <li key={link.label}>

@@ -10,7 +10,7 @@ export const metadata = {
 const principles = [
     {
         number: 1,
-        title: 'Synthesis of\nArt and Code',
+        title: 'Grades 4-9 (Junior Category)',
         description:
             'We celebrate the fusion of artistic imagination and cutting-edge technology. Our events illuminate the ways in which creativity and code can coalesce to birth new forms of expression, disrupting conventional boundaries and forging uncharted territories.',
         bg: '#8b7ff5',
@@ -19,7 +19,7 @@ const principles = [
     },
     {
         number: 2,
-        title: 'Ethical\nInnovation',
+        title: 'Grades 10-12 (Senior Category)',
         description:
             'With great technological power comes the responsibility to wield it ethically. Our discussions centre on the ethical dimensions of innovation, pushing us to build technology that is fair, transparent, and beneficial to all.',
         bg: '#00e6b4',
@@ -28,7 +28,7 @@ const principles = [
     },
     {
         number: 3,
-        title: 'The\nEmpowerment',
+        title: 'Private and Public Schools in Mombasa',
         description:
             'More than an event, Code Innovation Festival is a strategic investment in the future of our continent. Every student who walks through our doors leaves equipped with the confidence, skills, and network to shape tomorrow.',
         bg: '#f5c842',
@@ -45,13 +45,10 @@ export default function ManifestoPage() {
             {/* ── Intro ──────────────────────────────────────────────── */}
             <section className="px-4 sm:px-6 md:px-12 lg:px-16 pt-32 pb-20 md:pt-40 md:pb-28">
                 <h1 className="font-display text-[clamp(3.5rem,10vw,9rem)] font-semibold leading-[1] tracking-tight text-white mb-8">
-                    Manifesto
+                    Transforming Young Minds into Solution Creators
                 </h1>
                 <p className="text-white text-[clamp(1.1rem,2.5vw,1.75rem)] leading-[1.4] max-w-4xl font-sans">
-                    As we gather for the Code Innovation Festival, we embark on a journey to
-                    explore the symbiotic relationship between the creative and tech industries —
-                    a convergence that defines the forefront of progress and empowers the next
-                    generation of African innovators.
+                    Africa is brimming with untapped potential, and at Tech Kidz Africa, we believe this transformation will be driven by innovation, creativity, and the power of technology. Our festival is designed to unleash the ingenuity of students from Grades 4 to Form 4 across private and public schools in Mombasa. This isn't just a festival; it's a launchpad for future innovators, a vibrant hub where young African talents will code with purpose, addressing real-world problems and showcasing the boundless creativity that resides within them.
                 </p>
             </section>
 
