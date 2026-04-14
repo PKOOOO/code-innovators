@@ -3,6 +3,7 @@ import { heroQuery } from '@/sanity/lib/queries'
 import Navbar from './components/sections/Navbar'
 import Hero from './components/sections/Hero'
 import Motto from './components/sections/Motto'
+import Keynotes from './components/sections/Keynotes'
 import Footer from './components/sections/Footer'
 import SponsorCTA from './components/sections/SponsorCTA'
 
@@ -36,7 +37,7 @@ export default async function Home() {
 
       <Motto />
 
-      {/* Future sections will go here */}
+      <Keynotes />
 
       <SponsorCTA />
 
