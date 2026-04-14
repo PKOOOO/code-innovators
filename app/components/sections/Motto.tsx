@@ -1,6 +1,8 @@
+import Link from 'next/link'
+
 export default function Motto() {
     return (
-        <section className="relative min-h-screen flex items-start justify-start pt-20 overflow-hidden -mt-px md:items-center md:pt-0">
+        <section className="relative min-h-screen flex items-start justify-start pt-20 overflow-hidden -mt-px md:items-center md:pt-0 bg-background">
             {/* Gradient overlay — fades in from top so there's no hard line after the Hero */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/40" />
 
@@ -25,9 +27,12 @@ export default function Motto() {
                     </h2>
 
                     {/* Manifesto pill */}
-                    <span className="inline-block bg-[#8b7ff5]/70 hover:bg-[#8b7ff5] transition-colors text-white font-medium px-6 py-2.5 rounded-lg text-sm cursor-pointer backdrop-blur-sm">
+                    <Link
+                        href="/manifesto"
+                        className="inline-block bg-[#8b7ff5]/70 hover:bg-[#8b7ff5] transition-colors text-white font-medium px-6 py-2.5 rounded-lg text-sm backdrop-blur-sm"
+                    >
                         Manifesto
-                    </span>
+                    </Link>
                 </div>
             </div>
 

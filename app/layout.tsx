@@ -149,8 +149,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={cn(GeistSans.variable, clashDisplay.variable, jetbrainsMono.variable, "font-sans", geist.variable)}>
-      <body className="font-sans">{children}</body>
+    <html lang="en" className={cn(GeistSans.variable, clashDisplay.variable, jetbrainsMono.variable, "font-sans", geist.variable, "dark")}>
+      <body className="font-sans bg-background text-foreground">{children}</body>
     </html>
   )
 }

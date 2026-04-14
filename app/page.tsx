@@ -3,6 +3,7 @@ import { heroQuery } from '@/sanity/lib/queries'
 import Navbar from './components/sections/Navbar'
 import Hero from './components/sections/Hero'
 import Motto from './components/sections/Motto'
+import Footer from './components/sections/Footer'
 
 // Fallback data when Sanity document hasn't been created yet
 const fallbackHero = {
@@ -35,9 +36,8 @@ export default async function Home() {
       <Motto />
 
       {/* Future sections will go here */}
-      <section className="min-h-screen bg-background px-6 md:px-12 py-24">
 
-      </section>
+      <Footer />
     </main>
   )
 }

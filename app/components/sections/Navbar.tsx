@@ -36,13 +36,13 @@ export default function Navbar() {
                 <div className="flex items-center gap-3">
                     <Link
                         href="#register"
-                        className="hidden sm:inline-flex items-center px-5 py-2 rounded-full border border-white/30 text-white text-sm font-medium hover:bg-white/10 transition-all duration-200 backdrop-blur-sm"
+                        className="hidden sm:inline-flex items-center px-5 py-2 rounded-full bg-[#8b7ff5]/70 hover:bg-[#8b7ff5] text-white text-sm font-medium transition-all duration-200 backdrop-blur-sm"
                     >
                         Join free
                     </Link>
                     <Link
                         href="#register"
-                        className="inline-flex items-center px-3 py-1.5 sm:px-5 sm:py-2 rounded-full bg-accent text-background text-xs sm:text-sm font-bold hover:bg-accent-hover transition-all duration-200 shadow-lg shadow-accent/20"
+                        className="inline-flex items-center px-3 py-1.5 sm:px-5 sm:py-2 rounded-full bg-[#8b7ff5]/70 hover:bg-[#8b7ff5] text-white text-xs sm:text-sm font-bold transition-all duration-200 shadow-lg shadow-[#8b7ff5]/20 backdrop-blur-sm"
                     >
                         Buy tickets
                     </Link>
