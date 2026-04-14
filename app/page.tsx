@@ -4,6 +4,7 @@ import Navbar from './components/sections/Navbar'
 import Hero from './components/sections/Hero'
 import Motto from './components/sections/Motto'
 import Footer from './components/sections/Footer'
+import SponsorCTA from './components/sections/SponsorCTA'
 
 // Fallback data when Sanity document hasn't been created yet
 const fallbackHero = {
@@ -36,6 +37,8 @@ export default async function Home() {
       <Motto />
 
       {/* Future sections will go here */}
+
+      <SponsorCTA />
 
       <Footer />
     </main>
