@@ -110,14 +110,14 @@ export default function Footer() {
                 </div>
 
                 {/* Bottom bar */}
-                <div className="mt-16 pt-6 border-t border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="mt-16 pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     {/* Legal links */}
                     <ul className="flex items-center gap-6">
                         {legalLinks.map((link, i) => (
                             <li key={link.label} className="flex items-center gap-6">
                                 <Link
                                     href={link.href}
-                                    className="text-white/50 hover:text-white text-xs transition-colors duration-200"
+                                    className="text-white/50 hover:text-white text-sm transition-colors duration-200"
                                 >
                                     {link.label}
                                 </Link>
@@ -129,7 +129,7 @@ export default function Footer() {
                     </ul>
 
                     {/* Copyright */}
-                    <p className="text-white/40 text-xs">
+                    <p className="text-white/40 text-sm">
                         © {new Date().getFullYear()} Code Innovators Academy. All rights reserved.
                     </p>
                 </div>

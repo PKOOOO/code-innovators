@@ -11,3 +11,12 @@ export const heroQuery = groq`
     secondaryCta
   }
 `
+
+export const keynotesQuery = groq`
+  *[_type == "keynote"] | order(order asc) {
+    _id,
+    title,
+    description,
+    image
+  }
+`

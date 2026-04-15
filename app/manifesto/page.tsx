@@ -69,7 +69,7 @@ export default function ManifestoPage() {
                             {/* Number badge */}
                             <div
                                 className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-2xl mb-6 shrink-0 self-start"
-                                style={{ backgroundColor: '#111111' }}
+                                style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
                             >
                                 <span
                                     className="font-display font-bold text-4xl sm:text-5xl md:text-6xl"

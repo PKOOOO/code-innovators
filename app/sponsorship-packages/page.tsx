@@ -142,7 +142,7 @@ export default function SponsorshipPackagesPage() {
                 </div>
 
                 {/* Custom CTA */}
-                <div className="border border-white/10 rounded-3xl p-8 sm:p-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+                <div className="bg-white/5 border border-white/10 rounded-3xl p-8 sm:p-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
                     <div>
                         <h3 className="font-display text-2xl font-semibold text-white mb-2">Need a custom package?</h3>
                         <p className="text-white/50 text-sm">We're happy to tailor a partnership that works for your brand and budget.</p>
