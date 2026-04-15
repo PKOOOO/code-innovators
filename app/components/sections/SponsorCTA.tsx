@@ -1,9 +1,10 @@
 import Link from 'next/link'
 
 function ArrowIcon({ color }: { color: string }) {
+    const size = 'w-36 h-36 sm:w-44 sm:h-44'
     return (
         <div
-            className="flex items-center justify-center w-24 h-24 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] shrink-0 transition-transform duration-[1200ms] ease-in-out group-hover:scale-125"
+            className={`flex items-center justify-center ${size} rounded-3xl shrink-0 p-7`}
             style={{ backgroundColor: color }}
         >
             <svg
@@ -11,10 +12,10 @@ function ArrowIcon({ color }: { color: string }) {
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="#111111"
-                strokeWidth="2.5"
+                strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="w-12 h-12 sm:w-18 sm:h-18 md:w-24 md:h-24"
+                className="w-full h-full"
                 aria-hidden="true"
             >
                 <path d="M4 20L20 4" />
@@ -39,7 +40,7 @@ export default function SponsorCTA() {
                 {/* Card 1 — Become a Sponsor */}
                 <Link
                     href="/sponsor"
-                    className="group flex flex-row items-center justify-between gap-4 min-h-[180px] sm:min-h-[280px] md:min-h-[320px] bg-white/5 hover:bg-[#8b7ff5] border border-white/10 hover:border-[#8b7ff5] rounded-[2rem] sm:rounded-[2.5rem] px-6 py-8 sm:px-10 sm:py-12 transition-all duration-300"
+                    className="group flex flex-row items-center justify-between gap-6 min-h-[280px] sm:min-h-[340px] bg-transparent hover:bg-[#8b7ff5] border border-white/20 hover:border-[#8b7ff5] rounded-[2.5rem] px-8 py-10 sm:px-10 sm:py-12 transition-all duration-300"
                 >
                     <div className="flex flex-col gap-4 sm:gap-8">
                         <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-semibold text-white leading-tight">
@@ -55,7 +56,7 @@ export default function SponsorCTA() {
                 {/* Card 2 — See Sponsorship Packages */}
                 <Link
                     href="/sponsorship-packages"
-                    className="group flex flex-row items-center justify-between gap-4 min-h-[180px] sm:min-h-[280px] md:min-h-[320px] bg-white/5 hover:bg-[#00e6b4] border border-white/10 hover:border-[#00e6b4] rounded-[2rem] sm:rounded-[2.5rem] px-6 py-8 sm:px-10 sm:py-12 transition-all duration-300"
+                    className="group flex flex-row items-center justify-between gap-6 min-h-[280px] sm:min-h-[340px] bg-transparent hover:bg-[#00e6b4] border border-white/20 hover:border-[#00e6b4] rounded-[2.5rem] px-8 py-10 sm:px-10 sm:py-12 transition-all duration-300"
                 >
                     <div className="flex flex-col gap-4 sm:gap-8">
                         <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-semibold text-white group-hover:text-black leading-tight transition-colors duration-300">
