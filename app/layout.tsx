@@ -1,5 +1,5 @@
 import "./globals.css";
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import localFont from 'next/font/local'
 import { GeistSans } from 'geist/font'
 import { Geist } from "next/font/google";
@@ -11,10 +11,11 @@ export const metadata: Metadata = {
   title: 'Code Innovation Festival — Inter-School Tech Competition',
   description:
     'Join the Code Innovation Festival by Code Innovators Academy — an inter-school tech competition for students in Mombasa, Kenya. September 27, 2025.',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-  },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 }
 
 // Clash Display for titles and hero

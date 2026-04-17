@@ -1,12 +1,11 @@
 "use client"
 
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
-import { client } from '@/sanity/lib/client'
-import { keynotesQuery } from '@/sanity/lib/queries'
+import { motion } from 'motion/react'
 import { urlFor } from '@/sanity/lib/image'
 import { BentoGrid } from '@/components/ui/bento-grid'
 import { GlowingEffect } from '@/components/ui/glowing-effect'
+import { Cover } from '@/components/ui/cover'
 import type { SanityImageSource } from '@sanity/image-url'
 
 interface Keynote {
@@ -41,10 +40,12 @@ function KeynoteCard({
   title,
   description,
   image,
+  index,
 }: {
   title: string
   description: string
   image?: SanityImageSource
+  index: number
 }) {
   return (
     <li className="list-none min-h-[570px]">
@@ -58,8 +59,44 @@ function KeynoteCard({
         />
         <div className="relative h-full rounded-[3rem] overflow-hidden bg-white/5 border border-white/30 p-5 flex flex-col gap-5">
           {/* Image */}
-          <div className="relative w-full h-48 overflow-hidden rounded-[2.5rem] shrink-0">
-            {image ? (
+          <div className="relative w-full h-28 sm:h-36 md:h-44 overflow-hidden rounded-[2.5rem] shrink-0">
+            {index === 0 ? (
+              <Cover
+                className="!flex w-full h-full items-center justify-center gap-6 rounded-[2.5rem]"
+                alwaysHovered
+              >
+                <motion.img
+                  src="/cat.svg"
+                  alt="Cat sprite"
+                  className="w-20 h-20 object-contain"
+                  animate={{
+                    y: [0, -8, 0, 8, 0],
+                    x: [0, 5, 0, -5, 0],
+                    rotate: [60, 65, 60, 55, 60],
+                  }}
+                  transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                />
+                <motion.img
+                  src="/rocket.svg"
+                  alt="Rocket sprite"
+                  className="w-20 h-20 object-contain ml-8"
+                  animate={{
+                    y: [0, -12, 0],
+                    rotate: [90, 95, 90, 85, 90],
+                    scale: [1, 1.05, 1],
+                  }}
+                  transition={{
+                    duration: 2.5,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                />
+              </Cover>
+            ) : image ? (
               <Image
                 src={urlFor(image).width(800).height(500).fit('crop').url()}
                 alt={title}
@@ -87,18 +124,12 @@ function KeynoteCard({
   )
 }
 
-export default function Keynotes() {
-  const [keynotes, setKeynotes] = useState<Keynote[]>([])
-
-  useEffect(() => {
-    client.fetch(keynotesQuery).then(setKeynotes).catch(() => {})
-  }, [])
-
+export default function Keynotes({ keynotes = [] }: { keynotes?: Keynote[] }) {
   const displayItems = keynotes.length > 0 ? keynotes : null
   const count = keynotes.length > 0 ? keynotes.length : fallbackKeynotes.length
 
   return (
-    <section className="bg-background py-20 px-4 sm:px-6 md:px-12 lg:px-16">
+    <section className="relative z-10 bg-background py-20 px-4 sm:px-6 md:px-12 lg:px-16" style={{transform:'translateZ(0)'}}>
       {/* Heading */}
       <div className="mb-12">
         <h2 className="inline-block text-5xl sm:text-6xl font-bold text-white mb-4 border border-white/20 rounded-[2rem] px-8 py-4">
@@ -112,19 +143,21 @@ export default function Keynotes() {
       {/* Cards */}
       <BentoGrid className="max-w-none md:grid-cols-3 md:auto-rows-[auto] gap-5">
         {displayItems
-          ? displayItems.map((keynote) => (
+          ? displayItems.map((keynote, i) => (
               <KeynoteCard
                 key={keynote._id}
                 title={keynote.title}
                 description={keynote.description}
                 image={keynote.image}
+                index={i}
               />
             ))
-          : fallbackKeynotes.map((keynote) => (
+          : fallbackKeynotes.map((keynote, i) => (
               <KeynoteCard
                 key={keynote._id}
                 title={keynote.title}
                 description={keynote.description}
+                index={i}
               />
             ))}
       </BentoGrid>
