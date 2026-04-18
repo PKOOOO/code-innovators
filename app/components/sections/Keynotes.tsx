@@ -18,7 +18,7 @@ interface Keynote {
 const fallbackKeynotes: Omit<Keynote, 'image'>[] = [
   {
     _id: '1',
-    title: 'Future Visions: Navigating the Creative Landscape in the Age of AI',
+    title: 'Mobile App Development',
     description:
       'Exploring the intersection of creativity and artificial intelligence, envisioning the future of innovation.',
   },
@@ -133,10 +133,10 @@ export default function Keynotes({ keynotes = [] }: { keynotes?: Keynote[] }) {
       {/* Heading */}
       <div className="mb-12">
         <h2 className="inline-block text-5xl sm:text-6xl font-bold text-white mb-4 border border-white/20 rounded-[2rem] px-8 py-4">
-          {count} Keynotes
+           Festival Categories
         </h2>
         <p className="text-neutral-400 text-lg">
-          Inspiring Keynotes: Thought Leaders Shaping the Future
+          Categories: {count} Technology Categories
         </p>
       </div>
 
