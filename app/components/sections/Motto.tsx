@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 export default function Motto() {
     return (
-        <section className="relative min-h-screen flex items-start justify-start pt-20 overflow-hidden -mt-px md:items-center md:pt-0">
+        <section className="relative z-10 min-h-screen flex items-start justify-start pt-20 overflow-hidden -mt-px md:items-center md:pt-0" style={{transform:'translateZ(0)'}}>
             {/* Gradient overlay — fades in from top so there's no hard line after the Hero */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/60 to-background" />
 
