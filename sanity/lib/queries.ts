@@ -20,3 +20,13 @@ export const keynotesQuery = groq`
     image
   }
 `
+
+export const timelineQuery = groq`
+  *[_type == "timelinePhase"] | order(order asc) {
+    _id,
+    title,
+    description,
+    "images": images[].asset->url,
+    order
+  }
+`

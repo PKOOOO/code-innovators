@@ -22,7 +22,7 @@ export default function Navbar() {
                     {/* Left side: logo + nav links */}
                     <div className="flex items-center gap-8">
                         <Link href="/" className="flex items-center shrink-0">
-                            <Image src="/logo.svg" alt="Logo" width={170} height={170} className="w-[90px] h-[90px] sm:w-[120px] sm:h-[120px] md:w-[150px] md:h-[150px]" />
+                            <Image src="/logo.svg" alt="Logo" width={170} height={170} className="w-[90px] h-[90px] sm:w-[110px] sm:h-[110px] md:w-[110px] md:h-[110px]" />
                         </Link>
                         <ul className="hidden md:flex items-center gap-8">
                             {navLinks.map((link) => (

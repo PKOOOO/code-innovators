@@ -109,7 +109,7 @@ export const SkeletonOne = () => {
       <div className="group mx-auto h-full w-full bg-white p-5 shadow-2xl dark:bg-neutral-900">
         <div className="flex h-full w-full flex-1 flex-col space-y-2">
           <img
-            src="/linear.webp"
+            src="https://assets.aceternity.com/linear.webp"
             alt="header"
             width={800}
             height={800}
@@ -147,6 +147,10 @@ export const SkeletonThree = () => {
   );
 };
 
+// Fixed rotations — avoids SSR/hydration mismatch from Math.random()
+const rotationsRow1 = [-3, 7, -5, 4, -8];
+const rotationsRow2 = [6, -4, 8, -7, 3];
+
 export const SkeletonTwo = () => {
   const images = [
     "https://images.unsplash.com/photo-1517322048670-4fba75cbbb62?q=80&w=3000&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
@@ -176,7 +180,7 @@ export const SkeletonTwo = () => {
             variants={imageVariants}
             key={"images-first" + idx}
             style={{
-              rotate: Math.random() * 20 - 10,
+              rotate: rotationsRow1[idx % rotationsRow1.length],
             }}
             whileHover="whileHover"
             whileTap="whileTap"
@@ -197,7 +201,7 @@ export const SkeletonTwo = () => {
           <motion.div
             key={"images-second" + idx}
             style={{
-              rotate: Math.random() * 20 - 10,
+              rotate: rotationsRow2[idx % rotationsRow2.length],
             }}
             variants={imageVariants}
             whileHover="whileHover"

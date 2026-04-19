@@ -110,7 +110,7 @@ export const SkeletonOne = () => {
         <div className="flex h-full w-full flex-1 flex-col space-y-2">
           {/* TODO */}
           <img
-            src="/linear.webp"
+            src="https://assets.aceternity.com/linear.webp"
             alt="header"
             width={800}
             height={800}

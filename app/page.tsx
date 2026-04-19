@@ -5,6 +5,7 @@ import Hero from './components/sections/Hero'
 import Motto from './components/sections/Motto'
 import Keynotes from './components/sections/Keynotes'
 import FeaturesSectionDemo from '@/components/ui/features-section-demo-3'
+import TimelineDemo from '@/components/timeline-demo'
 import Footer from './components/sections/Footer'
 import SponsorCTA from './components/sections/SponsorCTA'
 
@@ -47,6 +48,8 @@ export default async function Home() {
 
       <SponsorCTA />
 
+      <TimelineDemo />
+      
       <Footer />
     </main>
   )

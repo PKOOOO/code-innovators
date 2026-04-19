@@ -24,7 +24,7 @@ export default function Hero({
         <section className="relative min-h-[100dvh] w-full overflow-hidden">
             {/* Background image — absolute so it scrolls out of view as the user scrolls */}
             {backgroundImage ? (
-                <div className="absolute md:fixed inset-0 -z-10">
+                <div className="absolute inset-0 -z-10">
                     <Image
                         src={backgroundImage}
                         alt={title}
@@ -38,7 +38,7 @@ export default function Hero({
                 </div>
             ) : (
                 /* Fallback gradient when no image is set yet */
-                <div className="absolute md:fixed inset-0 -z-10">
+                <div className="absolute inset-0 -z-10">
                     <div className="absolute inset-0 bg-gradient-to-br from-[#222222] via-[#1a1a1a] to-background" />
                     <div className="absolute inset-0 bg-black/30" />
                 </div>
@@ -110,8 +110,8 @@ export default function Hero({
                 </div>
             </div>
 
-            {/* Bottom fade into next section — only needed on mobile where bg is absolute */}
-            <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-background to-transparent pointer-events-none md:hidden" />
+            {/* Bottom fade into next section */}
+            <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-background to-transparent pointer-events-none" />
         </section>
     )
 }
