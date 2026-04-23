@@ -8,11 +8,12 @@ import FeaturesSectionDemo from '@/components/ui/features-section-demo-3'
 import TimelineDemo from '@/components/timeline-demo'
 import Footer from './components/sections/Footer'
 import SponsorCTA from './components/sections/SponsorCTA'
+import FestivalCountdown from './components/sections/FestivalCountdown'
 
 // Fallback data when Sanity document hasn't been created yet
 const fallbackHero = {
   title: 'Code Innovation Festival',
-  eventDate: 'Sep 27, 2025',
+  eventDate: 'Sep 27, 2026',
   location: 'Mombasa, Kenya',
   format: 'Inter-School Competition',
   backgroundImage: null,
@@ -39,6 +40,8 @@ export default async function Home() {
         primaryCta={data.primaryCta}
         secondaryCta={data.secondaryCta}
       />
+
+      <FestivalCountdown />
 
       <Motto />
 

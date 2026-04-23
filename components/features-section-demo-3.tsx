@@ -258,15 +258,18 @@ export const Globe = ({ className }: { className?: string }) => {
         { location: [37.7595, -122.4367], size: 0.03 },
         { location: [40.7128, -74.006], size: 0.1 },
       ],
-      onRender: (state) => {
-        // Called on every animation frame.
-        // `state` will be an empty object, return updated params.
-        state.phi = phi;
-        phi += 0.01;
-      },
     });
 
+    let animationFrameId: number;
+    const animate = () => {
+      globe.update({ phi });
+      phi += 0.01;
+      animationFrameId = requestAnimationFrame(animate);
+    };
+    animate();
+
     return () => {
+      cancelAnimationFrame(animationFrameId);
       globe.destroy();
     };
   }, []);
