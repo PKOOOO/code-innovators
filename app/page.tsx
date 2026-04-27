@@ -1,5 +1,5 @@
 import { client } from '@/sanity/lib/client'
-import { heroQuery, keynotesQuery } from '@/sanity/lib/queries'
+import { heroQuery, keynotesQuery, domainsSectionQuery } from '@/sanity/lib/queries'
 import Navbar from './components/sections/Navbar'
 import Hero from './components/sections/Hero'
 import Motto from './components/sections/Motto'
@@ -22,9 +22,10 @@ const fallbackHero = {
 }
 
 export default async function Home() {
-  const [hero, keynotes] = await Promise.all([
+  const [hero, keynotes, domains] = await Promise.all([
     client.fetch(heroQuery).catch(() => null),
     client.fetch(keynotesQuery).catch(() => []),
+    client.fetch(domainsSectionQuery).catch(() => null),
   ])
   const data = hero || fallbackHero
 
@@ -47,7 +48,10 @@ export default async function Home() {
 
       <Keynotes keynotes={keynotes} />
 
-      <FeaturesSectionDemo />
+      <FeaturesSectionDemo
+        educationImage={domains?.educationImage ?? null}
+        healthVideoUrl={domains?.healthVideoUrl ?? null}
+      />
 
       <SponsorCTA />
 

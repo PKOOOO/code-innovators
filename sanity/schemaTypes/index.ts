@@ -3,7 +3,8 @@ import hero from '../schemas/hero'
 import sponsorApplication from '../schemas/sponsorApplication'
 import keynote from '../schemas/keynote'
 import timelinePhase from '../schemas/timelinePhase'
+import domainsSection from '../schemas/domainsSection'
 
 export const schema: { types: SchemaTypeDefinition[] } = {
-  types: [hero, sponsorApplication, keynote, timelinePhase],
+  types: [hero, sponsorApplication, keynote, timelinePhase, domainsSection],
 }
