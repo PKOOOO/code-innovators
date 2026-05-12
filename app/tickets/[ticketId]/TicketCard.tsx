@@ -3,28 +3,21 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { QRCodeSVG } from 'qrcode.react'
+import type { TicketData } from './page'
 
-interface TicketData {
-    ticketId: string
-    customerName: string
-    email: string
-    schoolName: string
-    ticketType: string
-    issuedAt: string
-}
-
-const EVENT_DATE = '27 October 2025'
-const EVENT_TIME = '09:00 AM'
-const EVENT_LOCATION = 'Tech Kidz Africa'
+const EVENT_DATE     = '13 June 2026'
+const EVENT_TIME     = '09:00 AM'
+const EVENT_LOCATION = 'Khadija Comprehensive'
 
 export default function TicketCard({ ticket, baseUrl, token }: { ticket: TicketData; baseUrl: string; token: string }) {
     const [downloading, setDownloading] = useState(false)
     const ticketUrl = `${baseUrl}/check-in/${ticket.ticketId}?token=${encodeURIComponent(token)}`
+    const cardId = `printable-ticket-${ticket.ticketId}`
 
     async function handleDownload() {
         setDownloading(true)
         try {
-            const element = document.getElementById('printable-ticket')
+            const element = document.getElementById(cardId)
             if (!element) return
 
             const [{ toPng }, { default: jsPDF }] = await Promise.all([
@@ -32,23 +25,11 @@ export default function TicketCard({ ticket, baseUrl, token }: { ticket: TicketD
                 import('jspdf'),
             ])
 
-            const pixelRatio = 3
-            const dataUrl = await toPng(element, {
-                pixelRatio,
-                cacheBust: true,
-            })
+            const dataUrl = await toPng(element, { pixelRatio: 3, cacheBust: true })
+            const widthMm  = (element.offsetWidth  * 25.4) / 96
+            const heightMm = (element.offsetHeight * 25.4) / 96
 
-            // Use the element's actual dimensions for the PDF page size
-            const widthPx = element.offsetWidth
-            const heightPx = element.offsetHeight
-            const widthMm = (widthPx * 25.4) / 96
-            const heightMm = (heightPx * 25.4) / 96
-
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: [widthMm, heightMm],
-            })
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [widthMm, heightMm] })
             pdf.addImage(dataUrl, 'PNG', 0, 0, widthMm, heightMm)
             pdf.save(`ticket-${ticket.ticketId}.pdf`)
         } finally {
@@ -56,48 +37,63 @@ export default function TicketCard({ ticket, baseUrl, token }: { ticket: TicketD
         }
     }
 
+    const teamLabel = ticket.teamNumber && ticket.totalTeams && ticket.totalTeams > 1
+        ? `Team ${ticket.teamNumber} of ${ticket.totalTeams}`
+        : ticket.teamNumber ? `Team ${ticket.teamNumber}` : null
+
     return (
         <div className="flex flex-col items-center gap-6">
 
             {/* ── Ticket card ── */}
             <div
-                id="printable-ticket"
+                id={cardId}
                 className="w-full max-w-sm bg-[#1a1a2e] border border-white/10 rounded-3xl overflow-hidden shadow-2xl shadow-black/50"
             >
                 {/* Header band */}
                 <div className="bg-[#8b7ff5] px-5 py-3">
-                    <p className="text-white text-sm font-bold uppercase tracking-widest">Code Innovators Festival</p>
-                    <p className="text-white/80 font-display font-semibold text-base leading-tight mt-0.5">School Pass</p>
+                    <div className="flex items-start justify-between gap-2">
+                        <div>
+                            <p className="text-white text-sm font-bold uppercase tracking-widest">Code Innovators Festival</p>
+                            <p className="text-white/90 font-display font-semibold text-base leading-tight mt-0.5">
+                                {ticket.teamName ?? 'School Pass'}
+                            </p>
+                        </div>
+                        {teamLabel && (
+                            <span className="shrink-0 bg-white/20 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full mt-0.5">
+                                {teamLabel}
+                            </span>
+                        )}
+                    </div>
                 </div>
 
-                {/* QR + Details side-by-side */}
+                {/* QR + Details */}
                 <div className="flex gap-4 px-5 pt-5 pb-4">
-                    {/* QR code */}
                     <div className="flex-shrink-0 bg-white p-2 rounded-xl self-start">
-                        <QRCodeSVG
-                            value={ticketUrl}
-                            size={140}
-                            level="M"
-                            bgColor="#ffffff"
-                            fgColor="#1a1a2e"
-                        />
+                        <QRCodeSVG value={ticketUrl} size={130} level="M" bgColor="#ffffff" fgColor="#1a1a2e" />
                     </div>
 
-                    {/* Details */}
-                    <div className="flex flex-col gap-2.5 min-w-0">
+                    <div className="flex flex-col gap-2 min-w-0">
                         <div>
-                            <p className="text-white/40 text-[9px] uppercase tracking-widest">Customer</p>
+                            <p className="text-white/40 text-[9px] uppercase tracking-widest">Contact</p>
                             <p className="text-white text-xs font-medium truncate">{ticket.customerName}</p>
                         </div>
                         <div>
                             <p className="text-white/40 text-[9px] uppercase tracking-widest">School</p>
                             <p className="text-white text-xs font-medium truncate">{ticket.schoolName || '—'}</p>
                         </div>
-                        <div>
-                            <p className="text-white/40 text-[9px] uppercase tracking-widest">Location</p>
-                            <p className="text-white text-xs font-medium">{EVENT_LOCATION}</p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
+                        {ticket.category && (
+                            <div>
+                                <p className="text-white/40 text-[9px] uppercase tracking-widest">Category</p>
+                                <p className="text-white text-xs font-medium leading-tight">{ticket.category}</p>
+                            </div>
+                        )}
+                        {ticket.thematicArea && (
+                            <div>
+                                <p className="text-white/40 text-[9px] uppercase tracking-widest">Domain</p>
+                                <p className="text-white text-xs font-medium">{ticket.thematicArea}</p>
+                            </div>
+                        )}
+                        <div className="grid grid-cols-2 gap-2 mt-auto">
                             <div>
                                 <p className="text-white/40 text-[9px] uppercase tracking-widest">Date</p>
                                 <p className="text-white text-xs font-medium">{EVENT_DATE}</p>
@@ -125,11 +121,10 @@ export default function TicketCard({ ticket, baseUrl, token }: { ticket: TicketD
                             <p className="text-white font-mono text-sm font-semibold tracking-wider">{ticket.ticketId}</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-white/40 text-[9px] uppercase tracking-widest">Type</p>
-                            <p className="text-white text-xs font-medium">School Pass</p>
+                            <p className="text-white/40 text-[9px] uppercase tracking-widest">Venue</p>
+                            <p className="text-white text-xs font-medium">{EVENT_LOCATION}</p>
                         </div>
                     </div>
-
                     <div className="flex justify-center pt-1">
                         <Image src="/logo.svg" alt="Code Innovators" width={80} height={26} className="opacity-50" />
                     </div>
@@ -148,7 +143,7 @@ export default function TicketCard({ ticket, baseUrl, token }: { ticket: TicketD
                             <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
                                 <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="60" strokeDashoffset="20" strokeLinecap="round" />
                             </svg>
-                            Generating PDF…
+                            Generating…
                         </>
                     ) : (
                         <>
@@ -161,10 +156,8 @@ export default function TicketCard({ ticket, baseUrl, token }: { ticket: TicketD
                         </>
                     )}
                 </button>
-                <a
-                    href="/register"
-                    className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white font-semibold px-6 py-3 rounded-full text-sm transition-all"
-                >
+                <a href="/register"
+                    className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white font-semibold px-6 py-3 rounded-full text-sm transition-all">
                     Register Another
                 </a>
             </div>

@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { client } from '@/sanity/lib/client'
-import { verifyTicketToken } from '@/lib/ticket-token'
+import { verifyTicketToken, signTicketId } from '@/lib/ticket-token'
 import Navbar from '@/app/components/sections/Navbar'
 import Footer from '@/app/components/sections/Footer'
 import TicketCard from './TicketCard'
@@ -8,20 +8,41 @@ import TicketCard from './TicketCard'
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://code-innovators-rho.vercel.app'
 const TICKET_ID_PATTERN = /^CI-[A-Z0-9]{8}$/
 
-async function getTicket(ticketId: string) {
-    return client.fetch<{
-        ticketId: string
-        customerName: string
-        email: string
-        schoolName: string
-        ticketType: string
-        status: string
-        issuedAt: string
-    } | null>(
+export interface TicketData {
+    ticketId: string
+    customerName: string
+    email: string
+    schoolName: string
+    ticketType: string
+    status: string
+    issuedAt: string
+    registrationId?: string
+    teamName?: string
+    teamNumber?: number
+    totalTeams?: number
+    category?: string
+    thematicArea?: string
+    learnerNames?: string[]
+}
+
+async function getTicket(ticketId: string): Promise<TicketData | null> {
+    return client.fetch<TicketData | null>(
         `*[_type == "ticket" && ticketId == $id][0]{
-            ticketId, customerName, email, schoolName, ticketType, status, issuedAt
+            ticketId, customerName, email, schoolName, ticketType, status, issuedAt,
+            registrationId, teamName, teamNumber, totalTeams, category, thematicArea, learnerNames
         }`,
         { id: ticketId },
+        { cache: 'no-store' }
+    )
+}
+
+async function getSiblingTickets(registrationId: string, excludeTicketId: string): Promise<TicketData[]> {
+    return client.fetch<TicketData[]>(
+        `*[_type == "ticket" && registrationId == $rid && ticketId != $excl && status == "paid"] | order(teamNumber asc) {
+            ticketId, customerName, email, schoolName, ticketType, status, issuedAt,
+            registrationId, teamName, teamNumber, totalTeams, category, thematicArea, learnerNames
+        }`,
+        { rid: registrationId, excl: excludeTicketId },
         { cache: 'no-store' }
     )
 }
@@ -36,10 +57,8 @@ export default async function TicketPage({
     const { ticketId } = await params
     const { token } = await searchParams
 
-    // 1. Validate ticket ID format before hitting the database
     if (!TICKET_ID_PATTERN.test(ticketId)) notFound()
 
-    // 2. Verify the signed token — prevents IDOR (viewing other people's tickets)
     if (!token || !verifyTicketToken(ticketId, token)) {
         return (
             <div className="bg-background min-h-screen flex flex-col">
@@ -105,22 +124,42 @@ export default async function TicketPage({
         )
     }
 
+    // Fetch sibling tickets from the same registration (server-side token generation is safe
+    // because the caller has already proven ownership via the primary ticket token)
+    const siblings = ticket.registrationId
+        ? await getSiblingTickets(ticket.registrationId, ticketId)
+        : []
+
+    const allTickets = [
+        { ticket, token },
+        ...siblings.map(t => ({ ticket: t, token: signTicketId(t.ticketId) })),
+    ]
+
+    const plural = allTickets.length > 1
+
     return (
         <div className="bg-background min-h-screen flex flex-col">
             <Navbar />
             <main className="flex-1 px-4 sm:px-6 md:px-12 lg:px-16 pt-24 sm:pt-28 pb-24">
                 <div className="mb-10">
                     <span className="text-white/50 text-xs sm:text-sm uppercase tracking-widest mb-4 block">
-                        Your Ticket
+                        {plural ? `${allTickets.length} Tickets` : 'Your Ticket'}
                     </span>
                     <h1 className="font-display text-[clamp(2rem,5vw,4rem)] font-semibold leading-[1] tracking-tight text-white">
                         You&apos;re in!
                     </h1>
                     <p className="mt-3 text-white/50 text-sm max-w-sm">
-                        Your ticket is confirmed. Download it — you&apos;ll need to present it at the event.
+                        {plural
+                            ? `You have ${allTickets.length} tickets — one per team. Download and present each one at the event.`
+                            : 'Your ticket is confirmed. Download it — you\'ll need to present it at the event.'}
                     </p>
                 </div>
-                <TicketCard ticket={ticket} baseUrl={BASE_URL} token={token} />
+
+                <div className={`${plural ? 'flex flex-wrap gap-8' : ''}`}>
+                    {allTickets.map(({ ticket: t, token: tok }) => (
+                        <TicketCard key={t.ticketId} ticket={t} baseUrl={BASE_URL} token={tok} />
+                    ))}
+                </div>
             </main>
             <Footer />
         </div>

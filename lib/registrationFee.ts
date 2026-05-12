@@ -1,7 +1,7 @@
 import { createClient } from 'next-sanity'
 import { apiVersion, dataset, projectId } from '@/sanity/env'
 
-const FALLBACK_FEE = 20
+const FALLBACK_FEE = 1000
 
 const readClient = createClient({ projectId, dataset, apiVersion, useCdn: false })
 

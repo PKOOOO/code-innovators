@@ -22,15 +22,19 @@ function generateTicketId(): string {
     return 'CI-' + Array.from(bytes).map((b) => chars[b % chars.length]).join('')
 }
 
+export interface TeamData {
+    teamName: string
+    category: string
+    thematicArea: string
+    learnerNames: string[]
+}
+
 export interface RegistrationPayload {
     schoolName: string
     contactPerson: string
     email: string
     phone: string
-    teamName: string
-    thematicArea: string
-    category: string
-    learnerNames: string[]
+    teams: TeamData[]
 }
 
 export async function completeRegistrationWithPayment(
@@ -49,19 +53,20 @@ export async function completeRegistrationWithPayment(
             return { success: false, error: 'Payment could not be verified. Please contact support.' }
         }
 
-        // 2. Verify the amount paid is correct (prevents underpayment attacks)
-        const feeKes = await getRegistrationFee()
+        // 2. Verify amount (feePerLearner × totalLearners)
+        const feeKes       = await getRegistrationFee()
+        const totalLearners = data.teams.reduce((s, t) => s + t.learnerNames.length, 0)
         const paidKobo: number = paystackData.data.amount ?? 0
-        if (paidKobo < feeKes * 100) {
+        if (paidKobo < feeKes * totalLearners * 100) {
             return { success: false, error: 'Payment amount is insufficient.' }
         }
 
-        // 3. Verify currency is KES
+        // 3. Verify currency
         if (paystackData.data.currency !== 'KES') {
             return { success: false, error: 'Invalid payment currency.' }
         }
 
-        // 4. Prevent reference reuse — one paid reference = one ticket
+        // 4. Prevent reference reuse
         const alreadyUsed = await writeClient.fetch<{ _id: string } | null>(
             `*[_type == "ticket" && paystackReference == $ref && status == "paid"][0]{ _id }`,
             { ref: paystackReference }
@@ -70,40 +75,58 @@ export async function completeRegistrationWithPayment(
             return { success: false, error: 'This payment has already been used.' }
         }
 
-        // 5. Save the registration
+        const totalAmountKes = feeKes * totalLearners
+        const registrationId = crypto.randomBytes(8).toString('hex')
+        const issuedAt = new Date().toISOString()
+
+        // 5. Save registration
         await writeClient.create({
             _type: 'schoolRegistration',
             schoolName: data.schoolName,
             contactPerson: data.contactPerson,
             email: data.email,
             phone: data.phone || undefined,
-            teamName: data.teamName,
-            thematicArea: data.thematicArea,
-            category: data.category,
-            learnerNames: data.learnerNames,
+            teams: data.teams,
+            totalLearners,
+            totalAmountKes,
+            registrationId,
             paystackReference,
-            submittedAt: new Date().toISOString(),
+            submittedAt: issuedAt,
         })
 
-        // 6. Create a paid ticket
-        const ticketId = generateTicketId()
-        await writeClient.create({
-            _type: 'ticket',
-            ticketId,
-            customerName: data.contactPerson,
-            email: data.email,
-            schoolName: data.schoolName,
-            phone: data.phone || '',
-            amount: feeKes,
-            paystackReference,
-            status: 'paid',
-            ticketType: 'School Pass',
-            issuedAt: new Date().toISOString(),
-        })
+        // 6. Create one ticket per team
+        const firstTicketId = generateTicketId()
+        const ticketIds: string[] = []
 
-        // 7. Sign the ticket ID so only the holder can view it
-        const token = signTicketId(ticketId)
-        return { success: true, ticketId, token }
+        for (let i = 0; i < data.teams.length; i++) {
+            const team = data.teams[i]
+            const ticketId = i === 0 ? firstTicketId : generateTicketId()
+            ticketIds.push(ticketId)
+
+            await writeClient.create({
+                _type: 'ticket',
+                ticketId,
+                registrationId,
+                customerName: data.contactPerson,
+                email: data.email,
+                schoolName: data.schoolName,
+                phone: data.phone || '',
+                teamName: team.teamName,
+                teamNumber: i + 1,
+                totalTeams: data.teams.length,
+                category: team.category,
+                thematicArea: team.thematicArea,
+                learnerNames: team.learnerNames,
+                amount: feeKes * team.learnerNames.length,
+                paystackReference,
+                status: 'paid',
+                ticketType: 'School Pass',
+                issuedAt,
+            })
+        }
+
+        const token = signTicketId(firstTicketId)
+        return { success: true, ticketId: firstTicketId, token }
     } catch (err) {
         console.error('completeRegistration error:', err)
         return { success: false, error: 'Registration failed. Please try again.' }

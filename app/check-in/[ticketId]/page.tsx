@@ -152,11 +152,12 @@ export default function CheckInPage({
                     <div className="w-full bg-black/20 rounded-xl p-3 flex flex-col gap-2">
                         {'customerName' in result && (
                             <>
-                                <Row label="Name" value={result.customerName} />
+                                <Row label="Name"   value={result.customerName} />
                                 <Row label="School" value={result.schoolName} />
+                                {result.teamName   && <Row label="Team"     value={result.teamName} />}
+                                {result.category   && <Row label="Category" value={result.category} />}
                             </>
                         )}
-                        {'ticketType' in result && <Row label="Type" value={result.ticketType} />}
                         {'studentCount' in result && result.studentCount !== null && (
                             <Row label="Students" value={`${result.studentCount}`} />
                         )}

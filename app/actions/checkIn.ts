@@ -20,8 +20,8 @@ export type TicketCheckInResult =
     | { status: 'invalid_pin' }
     | { status: 'invalid_ticket' }
     | { status: 'not_paid' }
-    | { status: 'already_checked_in'; checkedInAt: string; customerName: string; schoolName: string; studentCount: number | null }
-    | { status: 'valid'; customerName: string; schoolName: string; ticketType: string; ticketId: string; studentCount: number | null }
+    | { status: 'already_checked_in'; checkedInAt: string; customerName: string; schoolName: string; teamName: string | null; category: string | null; studentCount: number | null }
+    | { status: 'valid'; customerName: string; schoolName: string; ticketType: string; ticketId: string; teamName: string | null; category: string | null; studentCount: number | null }
 
 export async function getTicketForCheckIn(
     ticketId: string,
@@ -41,10 +41,13 @@ export async function getTicketForCheckIn(
         status: string
         checkedIn: boolean
         checkedInAt: string | null
-        paystackReference: string | null
+        teamName: string | null
+        category: string | null
+        learnerNames: string[] | null
     } | null>(
         `*[_type == "ticket" && ticketId == $ticketId][0]{
-            _id, customerName, schoolName, ticketType, status, checkedIn, checkedInAt, paystackReference
+            _id, customerName, schoolName, ticketType, status, checkedIn, checkedInAt,
+            teamName, category, learnerNames
         }`,
         { ticketId }
     )
@@ -52,17 +55,9 @@ export async function getTicketForCheckIn(
     if (!ticket) return { status: 'invalid_ticket' }
     if (ticket.status !== 'paid') return { status: 'not_paid' }
 
-    // Fetch linked registration to get student count
-    let studentCount: number | null = null
-    if (ticket.paystackReference) {
-        const reg = await writeClient.fetch<{ learnerNames?: string[] } | null>(
-            `*[_type == "schoolRegistration" && paystackReference == $ref][0]{ learnerNames }`,
-            { ref: ticket.paystackReference }
-        )
-        if (reg?.learnerNames) {
-            studentCount = reg.learnerNames.filter((n) => n.trim() !== '').length
-        }
-    }
+    const studentCount = ticket.learnerNames
+        ? ticket.learnerNames.filter(n => n.trim() !== '').length
+        : null
 
     if (ticket.checkedIn) {
         return {
@@ -70,6 +65,8 @@ export async function getTicketForCheckIn(
             checkedInAt: ticket.checkedInAt ?? '',
             customerName: ticket.customerName,
             schoolName: ticket.schoolName,
+            teamName: ticket.teamName,
+            category: ticket.category,
             studentCount,
         }
     }
@@ -80,6 +77,8 @@ export async function getTicketForCheckIn(
         schoolName: ticket.schoolName,
         ticketType: ticket.ticketType,
         ticketId,
+        teamName: ticket.teamName,
+        category: ticket.category,
         studentCount,
     }
 }
