@@ -8,8 +8,8 @@ import Navbar from '@/app/components/sections/Navbar'
 import Footer from '@/app/components/sections/Footer'
 import { Input } from '@/components/ui/input'
 import {
-    Select, SelectContent, SelectGroup,
-    SelectItem, SelectLabel, SelectTrigger, SelectValue,
+    Select, SelectContent,
+    SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { completeRegistrationWithPayment } from '@/app/actions/completeRegistration'
 import { redeemCouponAndRegister } from '@/app/actions/redeemCoupon'
@@ -27,53 +27,59 @@ declare global {
     }
 }
 
-const THEMATIC_AREAS = {
-    Technology: ['Web & Mobile Development', 'Animation (e.g. Scratch)', 'Robotics'],
-    'Problem Solving': [
-        'Education', 'Solutions for Community Safety',
-        'Public Health & Healthcare', 'Sustainable Farming & Crops',
-        'Climate Change (e.g. Waste Management, Energy)',
-    ],
-} as const
+const CATEGORIES = [
+    'Mobile Application Development',
+    'Animation and Digital Storytelling',
+    'Gamification',
+    'Robotics',
+    'Line Following Robots',
+    'Web Application Development',
+] as const
 
-type ThematicArea = keyof typeof THEMATIC_AREAS
+const THEMATIC_AREAS = [
+    'Education',
+    'Security',
+    'Health',
+    'Agriculture',
+    'Cybersecurity',
+    'Environment',
+] as const
 
+const MAX_TEAMS    = 3
 const MAX_LEARNERS = 5
 const PAYSTACK_PUBLIC_KEY = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!
 
-const inputClass = 'h-12 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus-visible:border-[#8b7ff5] focus-visible:ring-[#8b7ff5]/20 rounded-xl text-sm'
+const inputClass   = 'h-12 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus-visible:border-[#8b7ff5] focus-visible:ring-[#8b7ff5]/20 rounded-xl text-sm'
 const triggerClass = 'h-12 w-full bg-white/5 border-white/10 text-white data-placeholder:text-white/40 focus-visible:border-[#8b7ff5] focus-visible:ring-[#8b7ff5]/20 rounded-xl text-sm px-4'
-const labelClass = 'text-white/60 text-xs uppercase tracking-widest mb-1 block'
+const labelClass   = 'text-white/60 text-xs uppercase tracking-widest mb-1 block'
 
 const STEPS = [
     { number: 1, title: 'School Info' },
-    { number: 2, title: 'Team Details' },
-    { number: 3, title: 'Learners' },
-    { number: 4, title: 'Payment' },
+    { number: 2, title: 'Teams' },
+    { number: 3, title: 'Payment' },
 ]
 
 type FieldDef = {
     key: string; label: string; hint: string
     type?: string; placeholder: string; required?: boolean
-    isSelect?: boolean
 }
 
 const STEP1_FIELDS: FieldDef[] = [
-    { key: 'schoolName',    label: 'School Name',    hint: 'What school are you registering?',  placeholder: 'e.g. Mombasa Academy',       required: true },
-    { key: 'contactPerson', label: 'Contact Person', hint: 'Who should we contact?',             placeholder: 'Teacher / Coordinator name', required: true },
-    { key: 'email',         label: 'Email Address',  hint: 'Where do we send your ticket?',      placeholder: 'school@example.com',          required: true, type: 'email' },
-    { key: 'phone',         label: 'Phone Number',   hint: 'Optional — how can we reach you?',   placeholder: '+254 xxx xxx xxx',            type: 'tel' },
-]
-const STEP2_FIELDS: FieldDef[] = [
-    { key: 'teamName',     label: 'Team Name',     hint: 'What will your team be called?',               placeholder: 'e.g. Code Breakers',   required: true },
-    { key: 'thematicArea', label: 'Thematic Area', hint: 'Which area does your project fall under?',     placeholder: 'Select thematic area', required: true, isSelect: true },
-    { key: 'category',     label: 'Category',      hint: 'Pick your specific sub-category.',             placeholder: 'Select category',      required: true, isSelect: true },
+    { key: 'schoolName',    label: 'School Name',    hint: 'What school are you registering?', placeholder: 'e.g. Mombasa Academy',       required: true },
+    { key: 'contactPerson', label: 'Contact Person', hint: 'Who should we contact?',            placeholder: 'Teacher / Coordinator name', required: true },
+    { key: 'email',         label: 'Email Address',  hint: 'Where do we send your ticket?',     placeholder: 'school@example.com',          required: true, type: 'email' },
+    { key: 'phone',         label: 'Phone Number',   hint: 'How can we reach you?',             placeholder: '+254 xxx xxx xxx',            required: true, type: 'tel' },
 ]
 
-function getMobileFields(step: number) {
-    if (step === 1) return STEP1_FIELDS
-    if (step === 2) return STEP2_FIELDS
-    return []
+type Team = {
+    teamName: string
+    category: string
+    thematicArea: string
+    learners: string[]
+}
+
+function newTeam(): Team {
+    return { teamName: '', category: '', thematicArea: '', learners: ['', ''] }
 }
 
 export default function RegisterPage() {
@@ -87,53 +93,88 @@ export default function RegisterPage() {
 
     const inputRef = useRef<HTMLInputElement>(null)
 
-    const [form, setForm] = useState({
-        schoolName: '', contactPerson: '', email: '', phone: '',
-        teamName: '', thematicArea: '' as ThematicArea | '', category: '',
-    })
-    const [learners, setLearners]       = useState<string[]>(['', ''])
+    const [form, setForm]   = useState({ schoolName: '', contactPerson: '', email: '', phone: '' })
+    const [teams, setTeams] = useState<Team[]>([newTeam()])
     const [coupon, setCoupon]           = useState('')
-    const [loading, setLoading]           = useState(false)
-    const [statusMessage, setStatusMsg]   = useState('')
-    const [error, setError]               = useState<string | null>(null)
-    const [ticketAmountKes, setTicketAmountKes] = useState(20)
+    const [loading, setLoading]         = useState(false)
+    const [statusMessage, setStatusMsg] = useState('')
+    const [error, setError]             = useState<string | null>(null)
+    const [feePerLearner, setFeePerLearner] = useState(1000)
 
-    useEffect(() => {
-        getRegistrationFee().then(setTicketAmountKes)
-    }, [])
+    // Step-2 mobile sub-navigation:
+    // s2FieldIdx: 0=team name, 1=category, 2=thematic area, 3=learners
+    // s2AskAdd: "want to add another team?" interstitial screen
+    const [s2TeamIdx, setS2TeamIdx]   = useState(0)
+    const [s2FieldIdx, setS2FieldIdx] = useState(0)
+    const [s2AskAdd, setS2AskAdd]     = useState(false)
 
-    const categories = form.thematicArea ? THEMATIC_AREAS[form.thematicArea] : []
-    const hasCoupon  = coupon.trim().length > 0
+    useEffect(() => { getRegistrationFee().then(setFeePerLearner) }, [])
 
-    // Track visualViewport so the fixed container stays pinned above the keyboard on iOS + Android.
-    // offsetTop accounts for iOS scrolling the page when an input is focused.
+    const totalLearners = teams.reduce((s, t) => s + t.learners.filter(l => l.trim()).length, 0)
+    const totalAmount   = totalLearners * feePerLearner
+    const hasCoupon     = coupon.trim().length > 0
+
     useEffect(() => {
         const vv = window.visualViewport
         if (!vv) return
-        const update = () => {
-            setVpHeight(`${Math.round(vv.height)}px`)
-            setVpTop(Math.round(vv.offsetTop))
-        }
+        const update = () => { setVpHeight(`${Math.round(vv.height)}px`); setVpTop(Math.round(vv.offsetTop)) }
         update()
         vv.addEventListener('resize', update)
         vv.addEventListener('scroll', update)
         return () => { vv.removeEventListener('resize', update); vv.removeEventListener('scroll', update) }
     }, [])
 
-    useEffect(() => { setTimeout(() => inputRef.current?.focus(), 120) }, [fieldIndex, step])
-    useEffect(() => { setFieldIndex(0) }, [step])
+    // Auto-focus text inputs; depends on s2 sub-step so it fires on each field change
+    useEffect(() => {
+        setTimeout(() => inputRef.current?.focus(), 120)
+    }, [fieldIndex, step, s2TeamIdx, s2FieldIdx])
+
+    // Reset sub-navigation when step changes
+    useEffect(() => {
+        setFieldIndex(0)
+        if (step === 2) { setS2TeamIdx(0); setS2FieldIdx(0); setS2AskAdd(false) }
+    }, [step])
 
     function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
         setForm(p => ({ ...p, [e.target.name]: e.target.value }))
     }
-    function handleLearnerChange(i: number, v: string) {
-        setLearners(p => p.map((l, idx) => idx === i ? v : l))
+
+    function setTeamField(ti: number, field: keyof Omit<Team, 'learners'>, value: string) {
+        setTeams(prev => prev.map((t, i) => i === ti ? { ...t, [field]: value } : t))
     }
-    function addLearner() { if (learners.length < MAX_LEARNERS) setLearners(p => [...p, '']) }
-    function removeLearner(i: number) { if (learners.length > 1) setLearners(p => p.filter((_, idx) => idx !== i)) }
+    function setLearner(ti: number, li: number, value: string) {
+        setTeams(prev => prev.map((t, i) => i !== ti ? t : {
+            ...t, learners: t.learners.map((l, j) => j === li ? value : l),
+        }))
+    }
+    function addLearner(ti: number) {
+        setTeams(prev => prev.map((t, i) => i !== ti || t.learners.length >= MAX_LEARNERS ? t : {
+            ...t, learners: [...t.learners, ''],
+        }))
+    }
+    function removeLearner(ti: number, li: number) {
+        setTeams(prev => prev.map((t, i) => i !== ti || t.learners.length <= 1 ? t : {
+            ...t, learners: t.learners.filter((_, j) => j !== li),
+        }))
+    }
+    function addTeam() { if (teams.length < MAX_TEAMS) setTeams(p => [...p, newTeam()]) }
+    function removeTeam(ti: number) { if (teams.length > 1) setTeams(p => p.filter((_, i) => i !== ti)) }
+
     function getPayload() {
-        return { ...form, thematicArea: form.thematicArea as string, learnerNames: learners.filter(l => l.trim()) }
+        return {
+            schoolName: form.schoolName,
+            contactPerson: form.contactPerson,
+            email: form.email,
+            phone: form.phone,
+            teams: teams.map(t => ({
+                teamName: t.teamName,
+                category: t.category,
+                thematicArea: t.thematicArea,
+                learnerNames: t.learners.filter(l => l.trim()),
+            })),
+        }
     }
+
     function handleSuccess(ticketId: string, token: string) {
         setStatusMsg('Done! Redirecting to your ticket…')
         router.push(`/tickets/${ticketId}?token=${token}`)
@@ -146,42 +187,92 @@ export default function RegisterPage() {
         return null
     }
 
+    function validateS2Field(): string | null {
+        const t = teams[s2TeamIdx]
+        if (!t) return null
+        if (s2FieldIdx === 0 && !t.teamName.trim())                          return 'Team name is required.'
+        if (s2FieldIdx === 1 && !t.category)                                  return 'Please select a category.'
+        if (s2FieldIdx === 2 && !t.thematicArea)                              return 'Please select a thematic area.'
+        if (s2FieldIdx === 3 && t.learners.filter(l => l.trim()).length < 1) return 'Enter at least one learner.'
+        return null
+    }
+
     function validateStep(): string | null {
         if (step === 1) {
             if (!form.schoolName.trim())    return 'School name is required.'
             if (!form.contactPerson.trim()) return 'Contact person is required.'
             if (!form.email.trim())         return 'Email address is required.'
+            if (!form.phone.trim())         return 'Phone number is required.'
         }
         if (step === 2) {
-            if (!form.teamName.trim()) return 'Team name is required.'
-            if (!form.thematicArea)    return 'Please select a thematic area.'
-            if (!form.category)        return 'Please select a category.'
-        }
-        if (step === 3) {
-            if (learners.filter(l => l.trim()).length < 1) return 'Enter at least one learner name.'
+            for (let i = 0; i < teams.length; i++) {
+                const t = teams[i]; const n = i + 1
+                if (!t.teamName.trim())                           return `Team ${n}: team name is required.`
+                if (!t.category)                                  return `Team ${n}: please select a category.`
+                if (!t.thematicArea)                              return `Team ${n}: please select a thematic area.`
+                if (t.learners.filter(l => l.trim()).length < 1) return `Team ${n}: enter at least one learner.`
+            }
         }
         return null
     }
 
-    const mobileFields      = getMobileFields(step)
+    const mobileFields      = step === 1 ? STEP1_FIELDS : []
     const isLastMobileField = fieldIndex >= mobileFields.length - 1
     const currentField      = mobileFields[fieldIndex]
-    const globalProgress    = ((step - 1) / STEPS.length) + (fieldIndex / ((mobileFields.length || 1) * STEPS.length))
+
+    // Progress: 0–1 across all steps
+    const stepBase = (step - 1) / STEPS.length
+    const subFrac  = step === 1
+        ? fieldIndex / STEP1_FIELDS.length
+        : step === 2
+            ? (s2AskAdd ? s2TeamIdx * 4 + 4 : s2TeamIdx * 4 + s2FieldIdx) / Math.max(teams.length * 4, 4)
+            : 0
+    const globalProgress = stepBase + subFrac / STEPS.length
 
     function mobileNext() {
         setError(null)
-        if (currentField) {
-            const err = validateField(currentField)
+        if (step === 1) {
+            if (currentField) {
+                const err = validateField(currentField)
+                if (err) { setError(err); return }
+            }
+            if (!isLastMobileField) { setDirection(1); setFieldIndex(f => f + 1) }
+            else goNextStep()
+        } else if (step === 2 && !s2AskAdd) {
+            const err = validateS2Field()
             if (err) { setError(err); return }
+            if (s2FieldIdx < 3) {
+                setDirection(1); setS2FieldIdx(f => f + 1)
+            } else {
+                if (s2TeamIdx < teams.length - 1) {
+                    setDirection(1); setS2TeamIdx(i => i + 1); setS2FieldIdx(0)
+                } else if (teams.length < MAX_TEAMS) {
+                    setDirection(1); setS2AskAdd(true)
+                } else {
+                    goNextStep()
+                }
+            }
         }
-        if (!isLastMobileField) { setDirection(1); setFieldIndex(f => f + 1) }
-        else goNextStep()
     }
 
     function mobileBack() {
         setError(null)
-        if (fieldIndex > 0) { setDirection(-1); setFieldIndex(f => f - 1) }
-        else goPrevStep()
+        if (step === 1) {
+            if (fieldIndex > 0) { setDirection(-1); setFieldIndex(f => f - 1) }
+            else goPrevStep()
+        } else if (step === 2) {
+            if (s2AskAdd) {
+                setDirection(-1); setS2AskAdd(false)
+            } else if (s2FieldIdx > 0) {
+                setDirection(-1); setS2FieldIdx(f => f - 1)
+            } else if (s2TeamIdx > 0) {
+                setDirection(-1); setS2TeamIdx(i => i - 1); setS2FieldIdx(3)
+            } else {
+                goPrevStep()
+            }
+        } else {
+            goPrevStep()
+        }
     }
 
     function goNextStep() {
@@ -210,16 +301,17 @@ export default function RegisterPage() {
         setError(null)
         if (hasCoupon) { handleCouponSubmit(); return }
         if (!window.PaystackPop) { setError('Payment widget still loading. Try again.'); return }
+        if (totalLearners < 1) { setError('No learners added.'); return }
 
         const bytes = new Uint8Array(12); crypto.getRandomValues(bytes)
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-        const rand = Array.from(bytes).map(b => chars[b % chars.length]).join('')
+        const rand  = Array.from(bytes).map(b => chars[b % chars.length]).join('')
 
         window.PaystackPop.setup({
             key: PAYSTACK_PUBLIC_KEY, email: form.email,
-            amount: ticketAmountKes * 100, currency: 'KES',
+            amount: totalAmount * 100, currency: 'KES',
             ref: `REG-${rand}`,
-            metadata: { schoolName: form.schoolName, contactPerson: form.contactPerson, teamName: form.teamName },
+            metadata: { schoolName: form.schoolName, contactPerson: form.contactPerson, teamCount: teams.length, totalLearners },
             callback(response) {
                 setLoading(true); setStatusMsg('Payment confirmed! Saving your registration…')
                 completeRegistrationWithPayment(response.reference, getPayload()).then(result => {
@@ -240,6 +332,7 @@ export default function RegisterPage() {
         exit:   (dir: number) => ({ x: dir > 0 ? -48 :  48, opacity: 0 }),
     }
 
+
     const StepBar = () => (
         <div className="flex items-center gap-0">
             {STEPS.map((s, i) => (
@@ -254,9 +347,7 @@ export default function RegisterPage() {
                                 ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M20 6L9 17l-5-5" /></svg>
                                 : s.number}
                         </div>
-                        <span className={`text-[10px] uppercase tracking-widest transition-colors ${step === s.number ? 'text-white/70' : 'text-white/25'}`}>
-                            {s.title}
-                        </span>
+                        <span className={`text-[10px] uppercase tracking-widest transition-colors ${step === s.number ? 'text-white/70' : 'text-white/25'}`}>{s.title}</span>
                     </div>
                     {i < STEPS.length - 1 && (
                         <div className={`flex-1 h-px mx-2 mb-5 transition-all duration-500 ${step > s.number ? 'bg-[#8b7ff5]/50' : 'bg-white/10'}`} />
@@ -277,30 +368,35 @@ export default function RegisterPage() {
         </div>
     )
 
+    // Animation key changes on every mobile sub-step so AnimatePresence fires correctly
+    const mobileKey = step === 2
+        ? `2-${s2TeamIdx}-${s2FieldIdx}-${s2AskAdd}`
+        : `${step}-${fieldIndex}`
+
+    // Convenience shorthand for the current team on step 2
+    const ct = teams[s2TeamIdx] ?? newTeam()
+
     return (
         <>
             <Script src="https://js.paystack.co/v1/inline.js" strategy="afterInteractive" />
             {loading && <LoadingOverlay />}
 
-            {/* ════════════════════════════════════════════════════
-                MOBILE  — visible below md, one field at a time
-                ════════════════════════════════════════════════════ */}
+            {/* ═══════════════════════════════════════════════════
+                MOBILE — one field/screen at a time for all steps
+                ═══════════════════════════════════════════════════ */}
             <div className="md:hidden bg-background flex flex-col"
-                style={{ position: 'fixed', left: 0, right: 0, top: vpTop, height: vpHeight }}
-            >
+                style={{ position: 'fixed', left: 0, right: 0, top: vpTop, height: vpHeight }}>
 
                 {/* Top bar */}
                 <div className="shrink-0 px-5 pt-5 pb-3">
                     <div className="w-full h-1 bg-white/10 rounded-full mb-5 overflow-hidden">
-                        <motion.div
-                            className="h-full bg-[#8b7ff5] rounded-full"
-                            animate={{ width: `${Math.round(globalProgress * 100 + 25)}%` }}
-                            transition={{ duration: 0.4 }}
-                        />
+                        <motion.div className="h-full bg-[#8b7ff5] rounded-full"
+                            animate={{ width: `${Math.max(5, Math.round(globalProgress * 100))}%` }}
+                            transition={{ duration: 0.4 }} />
                     </div>
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            {(step > 1 || fieldIndex > 0) && (
+                            {(step > 1 || fieldIndex > 0 || (step === 2 && (s2FieldIdx > 0 || s2TeamIdx > 0 || s2AskAdd))) && (
                                 <button onClick={mobileBack} className="text-white/50 hover:text-white p-1 -ml-1 transition-colors">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
                                         <path d="M19 12H5M12 5l-7 7 7 7" />
@@ -313,134 +409,196 @@ export default function RegisterPage() {
                     </div>
                 </div>
 
-                {/* Scrollable content */}
+                {/* Scrollable content area */}
                 <div className="flex-1 overflow-y-auto px-5">
                     <AnimatePresence mode="wait" custom={direction}>
-                        <motion.div
-                            key={`${step}-${fieldIndex}`}
-                            custom={direction}
-                            variants={variants}
+                        <motion.div key={mobileKey} custom={direction} variants={variants}
                             initial="enter" animate="center" exit="exit"
                             transition={{ duration: 0.22, ease: 'easeInOut' }}
-                            className="pt-10 pb-6"
-                        >
-                            {/* Steps 1 & 2: single field at a time */}
-                            {currentField && (step === 1 || step === 2) && (
+                            className="pt-10 pb-6">
+
+                            {/* ── Step 1: one school field at a time ── */}
+                            {step === 1 && currentField && (
                                 <>
                                     <p className="text-white font-display text-3xl font-semibold leading-tight mb-2">
-                                        {currentField.label}
-                                        {currentField.required && <span className="text-[#8b7ff5] ml-1">*</span>}
+                                        {currentField.label}{currentField.required && <span className="text-[#8b7ff5] ml-1">*</span>}
                                     </p>
                                     <p className="text-white/40 text-base mb-8">{currentField.hint}</p>
-
-                                    {currentField.isSelect && currentField.key === 'thematicArea' && (
-                                        <div className="w-full">
-                                            <Select value={form.thematicArea} onValueChange={v => setForm(p => ({ ...p, thematicArea: v as ThematicArea, category: '' }))}>
-                                                <SelectTrigger className="h-14 w-full bg-white/5 border-white/10 text-white rounded-2xl text-base px-4 focus:border-[#8b7ff5]">
-                                                    <SelectValue placeholder="Select thematic area" />
-                                                </SelectTrigger>
-                                                <SelectContent className="bg-[#1e1e1e] border-white/10 text-white" style={{ minWidth: 'var(--radix-select-trigger-width)' }}>
-                                                    {(Object.keys(THEMATIC_AREAS) as ThematicArea[]).map(area => (
-                                                        <SelectItem key={area} value={area} className="text-white focus:bg-white/10 focus:text-white text-base py-3">{area}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    )}
-
-                                    {currentField.isSelect && currentField.key === 'category' && (
-                                        <div className="w-full">
-                                            <Select value={form.category} onValueChange={v => setForm(p => ({ ...p, category: v }))} disabled={!form.thematicArea}>
-                                                <SelectTrigger className="h-14 w-full bg-white/5 border-white/10 text-white rounded-2xl text-base px-4 focus:border-[#8b7ff5] disabled:opacity-40">
-                                                    <SelectValue placeholder={form.thematicArea ? 'Select category' : 'Select thematic area first'} />
-                                                </SelectTrigger>
-                                                <SelectContent className="bg-[#1e1e1e] border-white/10 text-white" style={{ minWidth: 'var(--radix-select-trigger-width)' }}>
-                                                    <SelectGroup>
-                                                        <SelectLabel className="text-white/40">{form.thematicArea}</SelectLabel>
-                                                        {categories.map(cat => (
-                                                            <SelectItem key={cat} value={cat} className="text-white focus:bg-white/10 focus:text-white text-base py-3">{cat}</SelectItem>
-                                                        ))}
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    )}
-
-                                    {!currentField.isSelect && (
-                                        <input
-                                            ref={inputRef}
-                                            name={currentField.key}
-                                            type={currentField.type ?? 'text'}
-                                            value={(form as Record<string, string>)[currentField.key]}
-                                            onChange={e => setForm(p => ({ ...p, [currentField.key]: e.target.value }))}
-                                            placeholder={currentField.placeholder}
-                                            onKeyDown={e => e.key === 'Enter' && mobileNext()}
-                                            className="w-full h-14 bg-white/5 border border-white/10 text-white text-base placeholder:text-white/25 rounded-2xl px-4 focus:outline-none focus:border-[#8b7ff5] transition-colors"
-                                        />
-                                    )}
+                                    <input
+                                        ref={inputRef}
+                                        name={currentField.key}
+                                        type={currentField.type ?? 'text'}
+                                        value={(form as Record<string, string>)[currentField.key]}
+                                        onChange={e => setForm(p => ({ ...p, [currentField.key]: e.target.value }))}
+                                        placeholder={currentField.placeholder}
+                                        onKeyDown={e => e.key === 'Enter' && mobileNext()}
+                                        className="w-full h-14 bg-white/5 border border-white/10 text-white text-base placeholder:text-white/25 rounded-2xl px-4 focus:outline-none focus:border-[#8b7ff5] transition-colors"
+                                    />
                                 </>
                             )}
 
-                            {/* Step 3: Learners */}
-                            {step === 3 && (
+                            {/* ── Step 2, field 0: Team Name ── */}
+                            {step === 2 && !s2AskAdd && s2FieldIdx === 0 && (
                                 <>
-                                    <p className="text-white font-display text-3xl font-semibold leading-tight mb-2">Learner Names</p>
-                                    <p className="text-white/40 text-base mb-8">Add the students on your team — up to {MAX_LEARNERS}.</p>
-                                    <div className="flex flex-col gap-4">
-                                        {learners.map((learner, i) => (
-                                            <div key={i} className="flex items-center gap-3">
-                                                <span className="text-white/30 text-sm font-mono w-5 text-center shrink-0">{i + 1}</span>
+                                    <div className="flex items-center justify-between mb-6">
+                                        <p className="text-white/40 text-xs uppercase tracking-widest">Team {s2TeamIdx + 1}</p>
+                                        {s2TeamIdx > 0 && (
+                                            <button onClick={() => {
+                                                removeTeam(s2TeamIdx)
+                                                setDirection(-1)
+                                                setS2TeamIdx(i => i - 1)
+                                                setS2FieldIdx(3)
+                                            }} className="text-white/30 hover:text-red-400 text-xs transition-colors">
+                                                Remove team
+                                            </button>
+                                        )}
+                                    </div>
+                                    <p className="text-white font-display text-3xl font-semibold leading-tight mb-2">
+                                        Team Name <span className="text-[#8b7ff5]">*</span>
+                                    </p>
+                                    <p className="text-white/40 text-base mb-8">What will this team be called?</p>
+                                    <input
+                                        ref={inputRef}
+                                        value={ct.teamName}
+                                        onChange={e => setTeamField(s2TeamIdx, 'teamName', e.target.value)}
+                                        placeholder="e.g. Code Breakers"
+                                        onKeyDown={e => e.key === 'Enter' && mobileNext()}
+                                        className="w-full h-14 bg-white/5 border border-white/10 text-white text-base placeholder:text-white/25 rounded-2xl px-4 focus:outline-none focus:border-[#8b7ff5] transition-colors"
+                                    />
+                                </>
+                            )}
+
+                            {/* ── Step 2, field 1: Category ── */}
+                            {step === 2 && !s2AskAdd && s2FieldIdx === 1 && (
+                                <>
+                                    <p className="text-white/40 text-xs uppercase tracking-widest mb-6">Team {s2TeamIdx + 1} — {ct.teamName}</p>
+                                    <p className="text-white font-display text-3xl font-semibold leading-tight mb-2">
+                                        Category <span className="text-[#8b7ff5]">*</span>
+                                    </p>
+                                    <p className="text-white/40 text-base mb-8">Which category does your project fall under?</p>
+                                    <Select value={ct.category} onValueChange={v => setTeamField(s2TeamIdx, 'category', v)}>
+                                        <SelectTrigger className="h-14 w-full bg-white/5 border border-white/10 text-white rounded-2xl text-base px-4 focus:border-[#8b7ff5]">
+                                            <SelectValue placeholder="Select category" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-[#1e1e1e] border-white/10 text-white" style={{ minWidth: 'var(--radix-select-trigger-width)' }}>
+                                            {CATEGORIES.map(c => (
+                                                <SelectItem key={c} value={c} className="text-white focus:bg-white/10 focus:text-white text-base py-3">{c}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </>
+                            )}
+
+                            {/* ── Step 2, field 2: Thematic Area ── */}
+                            {step === 2 && !s2AskAdd && s2FieldIdx === 2 && (
+                                <>
+                                    <p className="text-white/40 text-xs uppercase tracking-widest mb-6">Team {s2TeamIdx + 1} — {ct.teamName}</p>
+                                    <p className="text-white font-display text-3xl font-semibold leading-tight mb-2">
+                                        Thematic Area <span className="text-[#8b7ff5]">*</span>
+                                    </p>
+                                    <p className="text-white/40 text-base mb-8">What problem area does your project address?</p>
+                                    <Select value={ct.thematicArea} onValueChange={v => setTeamField(s2TeamIdx, 'thematicArea', v)}>
+                                        <SelectTrigger className="h-14 w-full bg-white/5 border border-white/10 text-white rounded-2xl text-base px-4 focus:border-[#8b7ff5]">
+                                            <SelectValue placeholder="Select thematic area" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-[#1e1e1e] border-white/10 text-white" style={{ minWidth: 'var(--radix-select-trigger-width)' }}>
+                                            {THEMATIC_AREAS.map(a => (
+                                                <SelectItem key={a} value={a} className="text-white focus:bg-white/10 focus:text-white text-base py-3">{a}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </>
+                            )}
+
+                            {/* ── Step 2, field 3: Learner Names ── */}
+                            {step === 2 && !s2AskAdd && s2FieldIdx === 3 && (
+                                <>
+                                    <p className="text-white/40 text-xs uppercase tracking-widest mb-6">Team {s2TeamIdx + 1} — {ct.teamName}</p>
+                                    <p className="text-white font-display text-2xl font-semibold leading-tight mb-1">
+                                        Learner Names <span className="text-[#8b7ff5]">*</span>
+                                    </p>
+                                    <p className="text-white/40 text-sm mb-6">Add the students on this team — up to {MAX_LEARNERS}.</p>
+                                    <div className="flex flex-col gap-3">
+                                        {ct.learners.map((learner, li) => (
+                                            <div key={li} className="flex items-center gap-3">
+                                                <span className="text-white/30 text-sm font-mono w-5 text-center shrink-0">{li + 1}</span>
                                                 <input
+                                                    ref={li === 0 ? inputRef : undefined}
                                                     value={learner}
-                                                    onChange={e => handleLearnerChange(i, e.target.value)}
-                                                    placeholder={`Student ${i + 1} full name`}
+                                                    onChange={e => setLearner(s2TeamIdx, li, e.target.value)}
+                                                    placeholder={`Student ${li + 1} full name`}
                                                     className="flex-1 h-14 bg-white/5 border border-white/10 text-white text-base placeholder:text-white/25 rounded-2xl px-4 focus:outline-none focus:border-[#8b7ff5] transition-colors"
                                                 />
-                                                {learners.length > 1 && (
-                                                    <button type="button" onClick={() => removeLearner(i)}
+                                                {ct.learners.length > 1 && (
+                                                    <button type="button" onClick={() => removeLearner(s2TeamIdx, li)}
                                                         className="w-10 h-10 shrink-0 rounded-full bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/30 flex items-center justify-center transition-colors">
-                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-white/40">
-                                                            <path d="M18 6L6 18M6 6l12 12" />
-                                                        </svg>
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-white/40"><path d="M18 6L6 18M6 6l12 12" /></svg>
                                                     </button>
                                                 )}
                                             </div>
                                         ))}
                                     </div>
-                                    {learners.length < MAX_LEARNERS && (
-                                        <button type="button" onClick={addLearner}
+                                    {ct.learners.length < MAX_LEARNERS && (
+                                        <button type="button" onClick={() => addLearner(s2TeamIdx)}
                                             className="mt-4 flex items-center gap-2 text-[#8b7ff5] hover:text-[#a094f7] text-sm font-medium transition-colors">
                                             <span className="text-xl leading-none">+</span> Add another student
                                         </button>
                                     )}
-                                    <p className="mt-3 text-white/25 text-xs">{learners.filter(l => l.trim()).length} / {MAX_LEARNERS} students added</p>
+                                    <p className="mt-3 text-white/25 text-xs">{ct.learners.filter(l => l.trim()).length} / {MAX_LEARNERS} learners added</p>
                                 </>
                             )}
 
-                            {/* Step 4: Review & Pay */}
-                            {step === 4 && (
+                            {/* ── Step 2 interstitial: Add another team? ── */}
+                            {step === 2 && s2AskAdd && (
+                                <>
+                                    <p className="text-white font-display text-3xl font-semibold leading-tight mb-2">Add another team?</p>
+                                    <p className="text-white/40 text-base mb-6">
+                                        You have {teams.length} team{teams.length > 1 ? 's' : ''} so far. You can register up to {MAX_TEAMS}.
+                                    </p>
+                                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col gap-2">
+                                        {teams.map((t, i) => (
+                                            <div key={i} className="flex items-center gap-2 text-sm">
+                                                <span className="text-white/30 w-16 shrink-0">Team {i + 1}</span>
+                                                <span className="text-white/70 truncate">{t.teamName}</span>
+                                                <span className="text-white/30 ml-auto shrink-0">{t.learners.filter(l => l.trim()).length} learner{t.learners.filter(l => l.trim()).length !== 1 ? 's' : ''}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+
+                            {/* ── Step 3: Review & Pay ── */}
+                            {step === 3 && (
                                 <>
                                     <p className="text-white font-display text-3xl font-semibold leading-tight mb-2">Review & Pay</p>
                                     <p className="text-white/40 text-base mb-6">Everything looks good? Complete your registration.</p>
-                                    <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col gap-3 text-sm mb-6">
-                                        <Row label="School"   value={form.schoolName} />
-                                        <Row label="Contact"  value={form.contactPerson} />
-                                        <Row label="Email"    value={form.email} />
+                                    <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col gap-3 text-sm mb-4">
+                                        <Row label="School"  value={form.schoolName} />
+                                        <Row label="Contact" value={form.contactPerson} />
+                                        <Row label="Email"   value={form.email} />
+                                        <Row label="Phone"   value={form.phone} />
                                         <div className="border-t border-white/10" />
-                                        <Row label="Team"     value={form.teamName} />
-                                        <Row label="Domain"   value={form.thematicArea} />
-                                        <Row label="Category" value={form.category} />
+                                        {teams.map((t, i) => (
+                                            <div key={i}>
+                                                <p className="text-white/40 text-xs uppercase tracking-widest mb-2 mt-1">Team {i + 1}</p>
+                                                <div className="flex flex-col gap-1.5">
+                                                    <Row label="Name"     value={t.teamName} />
+                                                    <Row label="Category" value={t.category} />
+                                                    <Row label="Domain"   value={t.thematicArea} />
+                                                    <Row label="Learners" value={t.learners.filter(l => l.trim()).join(', ')} />
+                                                </div>
+                                                {i < teams.length - 1 && <div className="border-t border-white/10 mt-3" />}
+                                            </div>
+                                        ))}
                                         <div className="border-t border-white/10" />
-                                        <Row label="Students" value={learners.filter(l => l.trim()).join(', ')} />
+                                        <Row label="Total Learners" value={String(totalLearners)} />
+                                        <Row label="Total Amount"   value={`KES ${totalAmount.toLocaleString()}`} />
                                     </div>
                                     <div className="flex flex-col gap-2 mb-2">
                                         <label className={labelClass}>Coupon Code <span className="text-white/25 normal-case">(optional)</span></label>
-                                        <input
-                                            value={coupon}
-                                            onChange={e => setCoupon(e.target.value.toUpperCase())}
+                                        <input value={coupon} onChange={e => setCoupon(e.target.value.toUpperCase())}
                                             placeholder="Enter code"
-                                            className="w-full h-14 bg-white/5 border border-white/10 text-white text-base placeholder:text-white/25 rounded-2xl px-4 font-mono tracking-wider focus:outline-none focus:border-[#8b7ff5] transition-colors"
-                                        />
+                                            className="w-full h-14 bg-white/5 border border-white/10 text-white text-base placeholder:text-white/25 rounded-2xl px-4 font-mono tracking-wider focus:outline-none focus:border-[#8b7ff5] transition-colors" />
                                     </div>
                                 </>
                             )}
@@ -449,42 +607,56 @@ export default function RegisterPage() {
 
                     {error && (
                         <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
-                            className="text-red-400 text-sm px-1 -mt-2 mb-4">
-                            {error}
-                        </motion.p>
+                            className="text-red-400 text-sm px-1 -mt-2 mb-4">{error}</motion.p>
                     )}
                 </div>
 
-                {/* Bottom button */}
+                {/* Bottom button(s) */}
                 <div className="shrink-0 px-5 pb-5 pt-3 border-t border-white/5">
-                    {step === 4 ? (
+                    {step === 3 ? (
                         <button onClick={handlePay} disabled={loading}
                             className="w-full py-4 rounded-2xl bg-[#8b7ff5] hover:bg-[#7a6ee0] disabled:opacity-50 text-white font-bold text-base transition-all shadow-lg shadow-[#8b7ff5]/25">
-                            {hasCoupon ? 'Redeem Coupon & Register' : `Pay KES ${ticketAmountKes} & Register`}
+                            {hasCoupon ? 'Redeem Coupon & Register' : `Pay KES ${totalAmount.toLocaleString()} & Register`}
                         </button>
+                    ) : step === 2 && s2AskAdd ? (
+                        <div className="flex flex-col gap-3">
+                            <button onClick={() => {
+                                const ni = teams.length
+                                addTeam()
+                                setS2TeamIdx(ni)
+                                setS2FieldIdx(0)
+                                setS2AskAdd(false)
+                                setDirection(1)
+                            }} className="w-full py-4 rounded-2xl border border-[#8b7ff5] text-[#8b7ff5] font-bold text-base transition-all">
+                                + Register Team {teams.length + 1}
+                            </button>
+                            <button onClick={goNextStep}
+                                className="w-full py-4 rounded-2xl bg-[#8b7ff5] hover:bg-[#7a6ee0] text-white font-bold text-base transition-all shadow-lg shadow-[#8b7ff5]/30">
+                                Continue to Review →
+                            </button>
+                        </div>
                     ) : (
-                        <button onClick={step === 3 ? goNextStep : mobileNext}
+                        <button onClick={mobileNext}
                             className="w-full py-4 rounded-2xl bg-[#8b7ff5] hover:bg-[#7a6ee0] text-white font-bold text-base transition-all shadow-lg shadow-[#8b7ff5]/30">
-                            {(step === 3 || isLastMobileField) ? 'Continue →' : 'Next →'}
+                            {(step === 1 && isLastMobileField) || (step === 2 && s2FieldIdx === 3) ? 'Continue →' : 'Next →'}
                         </button>
                     )}
                 </div>
             </div>
 
-            {/* ════════════════════════════════════════════════════
-                DESKTOP  — visible from md upward, all fields per step
-                ════════════════════════════════════════════════════ */}
+            {/* ═══════════════════════════════════════════════════
+                DESKTOP — all fields per step visible at once
+                ═══════════════════════════════════════════════════ */}
             <div className="hidden md:flex flex-col min-h-screen bg-background overflow-x-hidden">
                 <Navbar />
-
                 <main className="flex-1 w-full px-4 sm:px-6 md:px-12 lg:px-16 pt-24 sm:pt-28 pb-24">
                     <div className="mb-12">
                         <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-semibold leading-[1.05] tracking-tight text-white">
                             Register Your<br />School
                         </h1>
                         <p className="mt-4 text-white/50 text-sm sm:text-base max-w-md">
-                            Registration fee: <span className="text-white font-semibold">KES {ticketAmountKes.toLocaleString()} per student</span>.
-                            You&apos;ll receive a ticket immediately after payment.
+                            Registration fee: <span className="text-white font-semibold">KES {feePerLearner.toLocaleString()} per learner</span>.
+                            Up to {MAX_TEAMS} teams, {MAX_LEARNERS} learners each.
                         </p>
                     </div>
 
@@ -517,97 +689,67 @@ export default function RegisterPage() {
 
                                     {step === 2 && <>
                                         <div>
-                                            <p className="text-white font-semibold text-lg mb-1">Team Details</p>
-                                            <p className="text-white/40 text-sm">Name your team and pick the competition domain.</p>
+                                            <p className="text-white font-semibold text-lg mb-1">Teams & Learners</p>
+                                            <p className="text-white/40 text-sm">Add up to {MAX_TEAMS} teams. Each team picks one category and one thematic area.</p>
                                         </div>
                                         <div className="flex flex-col gap-4">
-                                            <div className="flex flex-col gap-1.5">
-                                                <label className={labelClass}>Team Name *</label>
-                                                <Input name="teamName" required value={form.teamName} onChange={handleInput} placeholder="e.g. Code Breakers" className={inputClass} />
-                                            </div>
-                                            <div className="flex flex-col gap-1.5">
-                                                <label className={labelClass}>Thematic Area *</label>
-                                                <Select value={form.thematicArea} onValueChange={v => setForm(p => ({ ...p, thematicArea: v as ThematicArea, category: '' }))}>
-                                                    <SelectTrigger className={triggerClass}><SelectValue placeholder="Select thematic area" /></SelectTrigger>
-                                                    <SelectContent className="bg-[#1e1e1e] border-white/10 text-white">
-                                                        {(Object.keys(THEMATIC_AREAS) as ThematicArea[]).map(area => (
-                                                            <SelectItem key={area} value={area} className="text-white focus:bg-white/10 focus:text-white">{area}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                            <div className="flex flex-col gap-1.5">
-                                                <label className={labelClass}>Category *</label>
-                                                <Select value={form.category} onValueChange={v => setForm(p => ({ ...p, category: v }))} disabled={!form.thematicArea}>
-                                                    <SelectTrigger className={`${triggerClass} disabled:opacity-40`}><SelectValue placeholder={form.thematicArea ? 'Select category' : 'Select thematic area first'} /></SelectTrigger>
-                                                    <SelectContent className="bg-[#1e1e1e] border-white/10 text-white">
-                                                        <SelectGroup>
-                                                            <SelectLabel className="text-white/40">{form.thematicArea}</SelectLabel>
-                                                            {categories.map(cat => (
-                                                                <SelectItem key={cat} value={cat} className="text-white focus:bg-white/10 focus:text-white">{cat}</SelectItem>
-                                                            ))}
-                                                        </SelectGroup>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
+                                            {teams.map((team, ti) => (
+                                                <TeamCard key={ti} team={team} ti={ti} teamCount={teams.length}
+                                                    onRemove={removeTeam}
+                                                    onFieldChange={setTeamField}
+                                                    onLearnerChange={setLearner}
+                                                    onAddLearner={addLearner}
+                                                    onRemoveLearner={removeLearner}
+                                                />
+                                            ))}
                                         </div>
+                                        {teams.length < MAX_TEAMS && (
+                                            <button type="button" onClick={addTeam}
+                                                className="self-start flex items-center gap-1.5 text-[#8b7ff5] hover:text-[#a094f7] text-sm font-medium transition-colors">
+                                                <span className="text-lg leading-none">+</span> Add another team
+                                            </button>
+                                        )}
+                                        <p className="text-white/25 text-xs">
+                                            {teams.length} / {MAX_TEAMS} teams · {totalLearners} learner{totalLearners !== 1 ? 's' : ''} · Total: KES {totalAmount.toLocaleString()}
+                                        </p>
                                     </>}
 
                                     {step === 3 && <>
-                                        <div>
-                                            <p className="text-white font-semibold text-lg mb-1">Learner Names</p>
-                                            <p className="text-white/40 text-sm">Add the students on your team — up to {MAX_LEARNERS}.</p>
-                                        </div>
-                                        <div className="flex flex-col gap-3">
-                                            {learners.map((learner, i) => (
-                                                <div key={i} className="flex items-center gap-3">
-                                                    <span className="text-white/30 text-xs font-mono w-4 text-center shrink-0">{i + 1}</span>
-                                                    <Input value={learner} onChange={e => handleLearnerChange(i, e.target.value)}
-                                                        placeholder={`Student ${i + 1} full name`} className={inputClass + ' flex-1'} />
-                                                    {learners.length > 1 && (
-                                                        <button type="button" onClick={() => removeLearner(i)}
-                                                            className="w-9 h-9 shrink-0 rounded-full bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/30 flex items-center justify-center transition-colors">
-                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 text-white/40"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                        {learners.length < MAX_LEARNERS && (
-                                            <button type="button" onClick={addLearner}
-                                                className="self-start flex items-center gap-1.5 text-[#8b7ff5] hover:text-[#a094f7] text-sm font-medium transition-colors">
-                                                <span className="text-lg leading-none">+</span> Add another student
-                                            </button>
-                                        )}
-                                        <p className="text-white/25 text-xs">{learners.filter(l => l.trim()).length} of {MAX_LEARNERS} students added</p>
-                                    </>}
-
-                                    {step === 4 && <>
                                         <div>
                                             <p className="text-white font-semibold text-lg mb-1">Review & Pay</p>
                                             <p className="text-white/40 text-sm">Everything correct? Complete your registration below.</p>
                                         </div>
                                         <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col gap-3 text-sm">
-                                            <Row label="School"   value={form.schoolName} />
-                                            <Row label="Contact"  value={form.contactPerson} />
-                                            <Row label="Email"    value={form.email} />
+                                            <Row label="School"  value={form.schoolName} />
+                                            <Row label="Contact" value={form.contactPerson} />
+                                            <Row label="Email"   value={form.email} />
+                                            <Row label="Phone"   value={form.phone} />
                                             <div className="border-t border-white/10" />
-                                            <Row label="Team"     value={form.teamName} />
-                                            <Row label="Domain"   value={form.thematicArea} />
-                                            <Row label="Category" value={form.category} />
+                                            {teams.map((t, i) => (
+                                                <div key={i}>
+                                                    <p className="text-white/40 text-xs uppercase tracking-widest mb-2 mt-1">Team {i + 1}</p>
+                                                    <div className="flex flex-col gap-1.5">
+                                                        <Row label="Name"     value={t.teamName} />
+                                                        <Row label="Category" value={t.category} />
+                                                        <Row label="Domain"   value={t.thematicArea} />
+                                                        <Row label="Learners" value={t.learners.filter(l => l.trim()).join(', ')} />
+                                                    </div>
+                                                    {i < teams.length - 1 && <div className="border-t border-white/10 mt-3" />}
+                                                </div>
+                                            ))}
                                             <div className="border-t border-white/10" />
-                                            <Row label="Students" value={learners.filter(l => l.trim()).join(', ')} />
+                                            <Row label="Total Learners" value={String(totalLearners)} />
+                                            <Row label="Total Amount"   value={`KES ${totalAmount.toLocaleString()}`} />
                                         </div>
                                         <div className="flex flex-col gap-2">
                                             <label className={labelClass}>Coupon Code <span className="text-white/25 normal-case">(optional)</span></label>
                                             <Input value={coupon} onChange={e => setCoupon(e.target.value.toUpperCase())}
-                                                placeholder="Enter code"
-                                                className={inputClass + ' font-mono tracking-wider'} />
+                                                placeholder="Enter code" className={inputClass + ' font-mono tracking-wider'} />
                                             <p className="text-white/25 text-xs">Have a coupon? No payment required.</p>
                                         </div>
                                         <button onClick={handlePay} disabled={loading}
                                             className="w-full py-4 rounded-2xl bg-[#8b7ff5] hover:bg-[#7a6ee0] disabled:opacity-50 text-white font-bold text-base transition-all shadow-lg shadow-[#8b7ff5]/25">
-                                            {hasCoupon ? 'Redeem Coupon & Register' : `Pay KES ${ticketAmountKes} & Register`}
+                                            {hasCoupon ? 'Redeem Coupon & Register' : `Pay KES ${totalAmount.toLocaleString()} & Register`}
                                         </button>
                                     </>}
                                 </motion.div>
@@ -646,6 +788,82 @@ function Row({ label, value }: { label: string; value: string }) {
         <div className="flex justify-between gap-4">
             <span className="text-white/40 shrink-0">{label}</span>
             <span className="text-white text-right truncate">{value || '—'}</span>
+        </div>
+    )
+}
+
+type TeamCardProps = {
+    team: Team
+    ti: number
+    teamCount: number
+    onRemove: (ti: number) => void
+    onFieldChange: (ti: number, field: keyof Omit<Team, 'learners'>, value: string) => void
+    onLearnerChange: (ti: number, li: number, value: string) => void
+    onAddLearner: (ti: number) => void
+    onRemoveLearner: (ti: number, li: number) => void
+}
+
+function TeamCard({ team, ti, teamCount, onRemove, onFieldChange, onLearnerChange, onAddLearner, onRemoveLearner }: TeamCardProps) {
+    return (
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+                <span className="text-white/60 text-xs uppercase tracking-widest font-medium">Team {ti + 1}</span>
+                {teamCount > 1 && (
+                    <button type="button" onClick={() => onRemove(ti)}
+                        className="text-white/30 hover:text-red-400 text-xs transition-colors">Remove</button>
+                )}
+            </div>
+            <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1.5">
+                    <label className={labelClass}>Team Name *</label>
+                    <input value={team.teamName} onChange={e => onFieldChange(ti, 'teamName', e.target.value)}
+                        placeholder="e.g. Code Breakers"
+                        className="w-full h-12 bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/25 rounded-xl px-4 focus:outline-none focus:border-[#8b7ff5] transition-colors" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                    <label className={labelClass}>Category *</label>
+                    <Select value={team.category} onValueChange={v => onFieldChange(ti, 'category', v)}>
+                        <SelectTrigger className={triggerClass}><SelectValue placeholder="Select category" /></SelectTrigger>
+                        <SelectContent className="bg-[#1e1e1e] border-white/10 text-white">
+                            {CATEGORIES.map(c => <SelectItem key={c} value={c} className="text-white focus:bg-white/10 focus:text-white">{c}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                    <label className={labelClass}>Thematic Area *</label>
+                    <Select value={team.thematicArea} onValueChange={v => onFieldChange(ti, 'thematicArea', v)}>
+                        <SelectTrigger className={triggerClass}><SelectValue placeholder="Select thematic area" /></SelectTrigger>
+                        <SelectContent className="bg-[#1e1e1e] border-white/10 text-white">
+                            {THEMATIC_AREAS.map(a => <SelectItem key={a} value={a} className="text-white focus:bg-white/10 focus:text-white">{a}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="flex flex-col gap-2">
+                    <label className={labelClass}>
+                        Learner Names * <span className="text-white/25 normal-case">({team.learners.filter(l => l.trim()).length}/{MAX_LEARNERS})</span>
+                    </label>
+                    {team.learners.map((learner, li) => (
+                        <div key={li} className="flex items-center gap-2">
+                            <span className="text-white/30 text-xs font-mono w-4 text-center shrink-0">{li + 1}</span>
+                            <input value={learner} onChange={e => onLearnerChange(ti, li, e.target.value)}
+                                placeholder={`Student ${li + 1} full name`}
+                                className="flex-1 h-10 bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/25 rounded-xl px-3 focus:outline-none focus:border-[#8b7ff5] transition-colors" />
+                            {team.learners.length > 1 && (
+                                <button type="button" onClick={() => onRemoveLearner(ti, li)}
+                                    className="w-8 h-8 shrink-0 rounded-full bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/30 flex items-center justify-center transition-colors">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 text-white/40"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                    {team.learners.length < MAX_LEARNERS && (
+                        <button type="button" onClick={() => onAddLearner(ti)}
+                            className="self-start flex items-center gap-1 text-[#8b7ff5] hover:text-[#a094f7] text-xs font-medium transition-colors mt-1">
+                            <span className="text-sm leading-none">+</span> Add learner
+                        </button>
+                    )}
+                </div>
+            </div>
         </div>
     )
 }

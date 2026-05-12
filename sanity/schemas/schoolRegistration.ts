@@ -5,65 +5,46 @@ export default defineType({
     title: 'School Registrations',
     type: 'document',
     fields: [
-        defineField({
-            name: 'schoolName',
-            title: 'School Name',
-            type: 'string',
-            validation: (Rule) => Rule.required(),
-        }),
-        defineField({
-            name: 'contactPerson',
-            title: 'Contact Person',
-            type: 'string',
-            validation: (Rule) => Rule.required(),
-        }),
-        defineField({
-            name: 'email',
-            title: 'Email Address',
-            type: 'string',
-            validation: (Rule) => Rule.required().email(),
-        }),
-        defineField({
-            name: 'phone',
-            title: 'Phone Number',
-            type: 'string',
-        }),
+        defineField({ name: 'schoolName',    title: 'School Name',    type: 'string', validation: (R) => R.required() }),
+        defineField({ name: 'contactPerson', title: 'Contact Person', type: 'string', validation: (R) => R.required() }),
+        defineField({ name: 'email',         title: 'Email Address',  type: 'string', validation: (R) => R.required().email() }),
+        defineField({ name: 'phone',         title: 'Phone Number',   type: 'string' }),
         defineField({
             name: 'teams',
-            title: 'Number of Teams',
-            type: 'string',
-            options: {
-                list: [
-                    { title: '1 – 2 teams', value: '1 – 2 teams' },
-                    { title: '3 – 5 teams', value: '3 – 5 teams' },
-                    { title: '5 – 10 teams', value: '5 – 10 teams' },
+            title: 'Teams',
+            type: 'array',
+            of: [{
+                type: 'object',
+                fields: [
+                    defineField({ name: 'teamName',     title: 'Team Name',     type: 'string' }),
+                    defineField({ name: 'category',     title: 'Category',      type: 'string' }),
+                    defineField({ name: 'thematicArea', title: 'Thematic Area', type: 'string' }),
+                    defineField({ name: 'learnerNames', title: 'Learner Names', type: 'array', of: [{ type: 'string' }] }),
                 ],
-            },
-            validation: (Rule) => Rule.required(),
+                preview: {
+                    select: { title: 'teamName', subtitle: 'category' },
+                },
+            }],
         }),
-        defineField({
-            name: 'submittedAt',
-            title: 'Submitted At',
-            type: 'datetime',
-        }),
+        defineField({ name: 'totalLearners',  title: 'Total Learners',    type: 'number' }),
+        defineField({ name: 'totalAmountKes', title: 'Total Amount (KES)', type: 'number' }),
+        defineField({ name: 'paystackReference', title: 'Paystack Reference', type: 'string' }),
+        defineField({ name: 'couponCode',     title: 'Coupon Code',       type: 'string' }),
+        defineField({ name: 'submittedAt',    title: 'Submitted At',      type: 'datetime' }),
     ],
     orderings: [
-        {
-            title: 'Newest First',
-            name: 'submittedAtDesc',
-            by: [{ field: 'submittedAt', direction: 'desc' }],
-        },
+        { title: 'Newest First', name: 'submittedAtDesc', by: [{ field: 'submittedAt', direction: 'desc' }] },
     ],
     preview: {
         select: {
             title: 'schoolName',
             subtitle: 'contactPerson',
-            teams: 'teams',
+            learners: 'totalLearners',
         },
-        prepare({ title, subtitle, teams }) {
+        prepare({ title, subtitle, learners }) {
             return {
                 title,
-                subtitle: `${subtitle} — ${teams}`,
+                subtitle: `${subtitle}${learners != null ? ` · ${learners} learner${learners !== 1 ? 's' : ''}` : ''}`,
             }
         },
     },

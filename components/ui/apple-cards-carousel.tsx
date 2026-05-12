@@ -14,7 +14,7 @@ import {
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "motion/react";
-import Image, { ImageProps } from "next/image";
+import { type ImageProps } from "next/image";
 import { useOutsideClick } from "@/hooks/use-outside-click";
 import { Button as MovingBorderButton } from "@/components/ui/moving-border";
 
@@ -241,6 +241,7 @@ export const Card = ({
           </div>
           <div className="mt-6">
             <MovingBorderButton
+              as="div"
               borderRadius="1rem"
               duration={3000}
               className="bg-black/40 backdrop-blur-sm text-white text-sm font-medium px-5 py-2 border-white/20 pointer-events-none"
@@ -261,34 +262,17 @@ export const Card = ({
 };
 
 export const BlurImage = ({
-  height,
-  width,
   src,
   className,
   alt,
 }: ImageProps) => {
-  const [isLoading, setLoading] = useState(true);
-  const imgRef = useRef<HTMLImageElement>(null);
-
-  useEffect(() => {
-    if (imgRef.current?.complete) setLoading(false);
-  }, []);
-
   return (
     <img
-      ref={imgRef}
-      className={cn(
-        "h-full w-full transition duration-300",
-        isLoading ? "blur-sm" : "blur-none",
-        className,
-      )}
-      onLoad={() => setLoading(false)}
       src={src as string}
-      width={width}
-      height={height}
-      loading="lazy"
+      className={cn("h-full w-full object-cover", className)}
+      alt={alt ?? "Category image"}
+      loading="eager"
       decoding="async"
-      alt={alt ?? "Background of a beautiful view"}
     />
   );
 };

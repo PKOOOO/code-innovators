@@ -24,14 +24,12 @@ export async function redeemCouponAndRegister(
     couponCode: string,
     data: RegistrationPayload
 ) {
-    // Normalise — uppercase, strip spaces
     const code = couponCode.trim().toUpperCase()
 
     if (!/^[A-Z0-9]{4,16}$/.test(code)) {
         return { success: false, error: 'Invalid coupon format.' }
     }
 
-    // Fetch coupon
     const coupon = await writeClient.fetch<{
         _id: string
         _rev: string
@@ -42,62 +40,66 @@ export async function redeemCouponAndRegister(
         { code }
     )
 
-    if (!coupon) {
-        return { success: false, error: 'Coupon not found.' }
-    }
+    if (!coupon)       return { success: false, error: 'Coupon not found.' }
+    if (coupon.isUsed) return { success: false, error: 'This coupon has already been used.' }
 
-    if (coupon.isUsed) {
-        return { success: false, error: 'This coupon has already been used.' }
-    }
-
-    // Mark coupon as used — patch with revision check to prevent race conditions
     try {
         await writeClient
             .patch(coupon._id)
             .ifRevisionId(coupon._rev)
-            .set({
-                isUsed: true,
-                usedBy: data.schoolName,
-                usedByEmail: data.email,
-                usedAt: new Date().toISOString(),
-            })
+            .set({ isUsed: true, usedBy: data.schoolName, usedByEmail: data.email, usedAt: new Date().toISOString() })
             .commit()
     } catch {
-        // Another request redeemed it between our fetch and patch
         return { success: false, error: 'This coupon was just used by someone else. Please contact support.' }
     }
 
-    // Save the registration
+    const totalLearners = data.teams.reduce((s, t) => s + t.learnerNames.length, 0)
+    const registrationId = crypto.randomBytes(8).toString('hex')
+    const issuedAt = new Date().toISOString()
+
     await writeClient.create({
         _type: 'schoolRegistration',
         schoolName: data.schoolName,
         contactPerson: data.contactPerson,
         email: data.email,
         phone: data.phone || undefined,
-        teamName: data.teamName,
-        thematicArea: data.thematicArea,
-        category: data.category,
-        learnerNames: data.learnerNames,
+        teams: data.teams,
+        totalLearners,
+        totalAmountKes: 0,
+        registrationId,
         couponCode: code,
-        submittedAt: new Date().toISOString(),
+        submittedAt: issuedAt,
     })
 
-    // Create a paid ticket (coupon = 100% off)
-    const ticketId = generateTicketId()
-    await writeClient.create({
-        _type: 'ticket',
-        ticketId,
-        customerName: data.contactPerson,
-        email: data.email,
-        schoolName: data.schoolName,
-        phone: data.phone || '',
-        amount: 0,
-        couponCode: code,
-        status: 'paid',
-        ticketType: 'School Pass',
-        issuedAt: new Date().toISOString(),
-    })
+    // One ticket per team
+    const firstTicketId = generateTicketId()
 
-    const token = signTicketId(ticketId)
-    return { success: true, ticketId, token }
+    for (let i = 0; i < data.teams.length; i++) {
+        const team = data.teams[i]
+        const ticketId = i === 0 ? firstTicketId : generateTicketId()
+
+        await writeClient.create({
+            _type: 'ticket',
+            ticketId,
+            registrationId,
+            customerName: data.contactPerson,
+            email: data.email,
+            schoolName: data.schoolName,
+            phone: data.phone || '',
+            teamName: team.teamName,
+            teamNumber: i + 1,
+            totalTeams: data.teams.length,
+            category: team.category,
+            thematicArea: team.thematicArea,
+            learnerNames: team.learnerNames,
+            amount: 0,
+            couponCode: code,
+            status: 'paid',
+            ticketType: 'School Pass',
+            issuedAt,
+        })
+    }
+
+    const token = signTicketId(firstTicketId)
+    return { success: true, ticketId: firstTicketId, token }
 }
