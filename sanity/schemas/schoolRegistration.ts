@@ -22,12 +22,17 @@ export default defineType({
                     defineField({ name: 'learnerNames', title: 'Learner Names', type: 'array', of: [{ type: 'string' }] }),
                 ],
                 preview: {
-                    select: { title: 'teamName', subtitle: 'category' },
+                    select: { title: 'teamName', category: 'category', learners: 'learnerNames' },
+                    prepare({ title, category, learners }: Record<string, any>) {
+                        const names = (learners || []).filter(Boolean).join(', ')
+                        return { title, subtitle: category ? `${category} · ${names}` : names }
+                    }
                 },
             }],
         }),
         defineField({ name: 'totalLearners',  title: 'Total Learners',    type: 'number' }),
         defineField({ name: 'totalAmountKes', title: 'Total Amount (KES)', type: 'number' }),
+        defineField({ name: 'registrationId', title: 'Registration ID',    type: 'string' }),
         defineField({ name: 'paystackReference', title: 'Paystack Reference', type: 'string' }),
         defineField({ name: 'couponCode',     title: 'Coupon Code',       type: 'string' }),
         defineField({ name: 'submittedAt',    title: 'Submitted At',      type: 'datetime' }),
@@ -39,12 +44,13 @@ export default defineType({
         select: {
             title: 'schoolName',
             subtitle: 'contactPerson',
-            learners: 'totalLearners',
+            teams: 'teams',
         },
-        prepare({ title, subtitle, learners }) {
+        prepare({ title, subtitle, teams }: Record<string, any>) {
+            const learnerNames = (teams || []).flatMap((t: any) => t.learnerNames || []).filter(Boolean).join(', ')
             return {
                 title,
-                subtitle: `${subtitle}${learners != null ? ` · ${learners} learner${learners !== 1 ? 's' : ''}` : ''}`,
+                subtitle: learnerNames ? `${subtitle} · ${learnerNames}` : subtitle,
             }
         },
     },
