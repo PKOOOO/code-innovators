@@ -119,7 +119,7 @@ export async function completeRegistrationWithPayment(
             contactPerson: data.contactPerson,
             email: data.email,
             phone: data.phone || undefined,
-            teams: data.teams,
+            teams: data.teams.map(t => ({ ...t, _key: crypto.randomBytes(4).toString('hex') })),
             totalLearners,
             totalAmountKes,
             registrationId,
