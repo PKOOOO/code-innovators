@@ -14,6 +14,7 @@ import {
 import { completeRegistrationWithPayment } from '@/app/actions/completeRegistration'
 import { redeemCouponAndRegister } from '@/app/actions/redeemCoupon'
 import { getRegistrationFee } from '@/app/actions/getRegistrationFee'
+import { CATEGORIES, THEMATIC_AREAS, MAX_OBSERVERS, learnerLimit } from '@/lib/registrationLimits'
 
 declare global {
     interface Window {
@@ -27,25 +28,7 @@ declare global {
     }
 }
 
-const CATEGORIES = [
-    'Website and Mobile App Development',
-    'Line Following',
-    'Animation and Gamification',
-    'Automation',
-] as const
-
-const THEMATIC_AREAS = [
-    'Education',
-    'Security',
-    'Health',
-    'Agriculture',
-    'Cybersecurity',
-    'Environment',
-] as const
-
-const MAX_TEAMS     = 3
-const MAX_LEARNERS  = 5
-const MAX_OBSERVERS = 5
+const MAX_TEAMS = Infinity   // schools can register as many teams as they want
 const PAYSTACK_PUBLIC_KEY = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!
 
 const inputClass   = 'h-12 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus-visible:border-[#8b7ff5] focus-visible:ring-[#8b7ff5]/20 rounded-xl text-sm'
@@ -149,8 +132,10 @@ export default function RegisterPage() {
         }))
     }
     function addLearner(ti: number) {
-        setTeams(prev => prev.map((t, i) => i !== ti || t.learners.length >= MAX_LEARNERS ? t : {
-            ...t, learners: [...t.learners, ''],
+        setTeams(prev => prev.map((t, i) => {
+            if (i !== ti) return t
+            const max = learnerLimit(t.category).max
+            return t.learners.length >= max ? t : { ...t, learners: [...t.learners, ''] }
         }))
     }
     function removeLearner(ti: number, li: number) {
@@ -197,10 +182,15 @@ export default function RegisterPage() {
     function validateS2Field(): string | null {
         const t = teams[s2TeamIdx]
         if (!t) return null
-        if (s2FieldIdx === 0 && !t.teamName.trim())                          return 'Team name is required.'
-        if (s2FieldIdx === 1 && !t.category)                                  return 'Please select a category.'
-        if (s2FieldIdx === 2 && !t.thematicArea)                              return 'Please select a thematic area.'
-        if (s2FieldIdx === 3 && t.learners.filter(l => l.trim()).length < 1) return 'Enter at least one learner.'
+        if (s2FieldIdx === 0 && !t.teamName.trim())  return 'Team name is required.'
+        if (s2FieldIdx === 1 && !t.category)          return 'Please select a category.'
+        if (s2FieldIdx === 2 && !t.thematicArea)      return 'Please select a thematic area.'
+        if (s2FieldIdx === 3) {
+            const lim = learnerLimit(t.category)
+            const filled = t.learners.filter(l => l.trim()).length
+            if (filled < lim.min) return `Add at least ${lim.min} learners for ${t.category}.`
+            if (filled > lim.max) return `Maximum ${lim.max} learners for ${t.category}.`
+        }
         return null
     }
 
@@ -214,10 +204,13 @@ export default function RegisterPage() {
         if (step === 2) {
             for (let i = 0; i < teams.length; i++) {
                 const t = teams[i]; const n = i + 1
-                if (!t.teamName.trim())                           return `Team ${n}: team name is required.`
-                if (!t.category)                                  return `Team ${n}: please select a category.`
-                if (!t.thematicArea)                              return `Team ${n}: please select a thematic area.`
-                if (t.learners.filter(l => l.trim()).length < 1) return `Team ${n}: enter at least one learner.`
+                if (!t.teamName.trim())    return `Team ${n}: team name is required.`
+                if (!t.category)            return `Team ${n}: please select a category.`
+                if (!t.thematicArea)        return `Team ${n}: please select a thematic area.`
+                const lim = learnerLimit(t.category)
+                const filled = t.learners.filter(l => l.trim()).length
+                if (filled < lim.min) return `Team ${n}: add at least ${lim.min} learners.`
+                if (filled > lim.max) return `Team ${n}: maximum ${lim.max} learners for ${t.category}.`
             }
         }
         return null
@@ -530,7 +523,7 @@ export default function RegisterPage() {
                                     <p className="text-white font-display text-2xl font-semibold leading-tight mb-1">
                                         Learner Names <span className="text-[#8b7ff5]">*</span>
                                     </p>
-                                    <p className="text-white/40 text-sm mb-6">Add the students on this team — up to {MAX_LEARNERS}.</p>
+                                    <p className="text-white/40 text-sm mb-6">Add the students on this team — {learnerLimit(ct.category).min} to {learnerLimit(ct.category).max} for {ct.category}.</p>
                                     <div className="flex flex-col gap-3">
                                         {ct.learners.map((learner, li) => (
                                             <div key={li} className="flex items-center gap-3">
@@ -551,13 +544,13 @@ export default function RegisterPage() {
                                             </div>
                                         ))}
                                     </div>
-                                    {ct.learners.length < MAX_LEARNERS && (
+                                    {ct.learners.length < learnerLimit(ct.category).max && (
                                         <button type="button" onClick={() => addLearner(s2TeamIdx)}
                                             className="mt-4 flex items-center gap-2 text-[#8b7ff5] hover:text-[#a094f7] text-sm font-medium transition-colors">
                                             <span className="text-xl leading-none">+</span> Add another student
                                         </button>
                                     )}
-                                    <p className="mt-3 text-white/25 text-xs">{ct.learners.filter(l => l.trim()).length} / {MAX_LEARNERS} learners added</p>
+                                    <p className="mt-3 text-white/25 text-xs">{ct.learners.filter(l => l.trim()).length} / {learnerLimit(ct.category).max} learners added</p>
                                 </>
                             )}
 
@@ -566,7 +559,7 @@ export default function RegisterPage() {
                                 <>
                                     <p className="text-white font-display text-3xl font-semibold leading-tight mb-2">Add another team?</p>
                                     <p className="text-white/40 text-base mb-6">
-                                        You have {teams.length} team{teams.length > 1 ? 's' : ''} so far. You can register up to {MAX_TEAMS}.
+                                        You have {teams.length} team{teams.length > 1 ? 's' : ''} so far. You can register as many as you like.
                                     </p>
                                     <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col gap-2">
                                         {teams.map((t, i) => (
@@ -710,7 +703,7 @@ export default function RegisterPage() {
                         </h1>
                         <p className="mt-4 text-white/50 text-sm sm:text-base max-w-md">
                             Registration fee: <span className="text-white font-semibold">KES {feePerLearner.toLocaleString()} per learner</span>.
-                            Up to {MAX_TEAMS} teams, {MAX_LEARNERS} learners each.
+                            Register as many teams as you like — 2 to 5 learners each depending on category.
                         </p>
                     </div>
 
@@ -744,7 +737,7 @@ export default function RegisterPage() {
                                     {step === 2 && <>
                                         <div>
                                             <p className="text-white font-semibold text-lg mb-1">Teams & Learners</p>
-                                            <p className="text-white/40 text-sm">Add up to {MAX_TEAMS} teams. Each team picks one category and one thematic area.</p>
+                                            <p className="text-white/40 text-sm">Add as many teams as you like. Each team picks one category and one thematic area.</p>
                                         </div>
                                         <div className="flex flex-col gap-4">
                                             {teams.map((team, ti) => (
@@ -791,7 +784,7 @@ export default function RegisterPage() {
                                         </div>
 
                                         <p className="text-white/25 text-xs">
-                                            {teams.length} / {MAX_TEAMS} teams · {totalLearners} learner{totalLearners !== 1 ? 's' : ''} · Total: KES {totalAmount.toLocaleString()}
+                                            {teams.length} team{teams.length !== 1 ? 's' : ''} · {totalLearners} learner{totalLearners !== 1 ? 's' : ''} · Total: KES {totalAmount.toLocaleString()}
                                         </p>
                                     </>}
 
@@ -891,6 +884,7 @@ type TeamCardProps = {
 }
 
 function TeamCard({ team, ti, teamCount, onRemove, onFieldChange, onLearnerChange, onAddLearner, onRemoveLearner }: TeamCardProps) {
+    const lim = learnerLimit(team.category)
     return (
         <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col gap-4">
             <div className="flex items-center justify-between">
@@ -927,7 +921,7 @@ function TeamCard({ team, ti, teamCount, onRemove, onFieldChange, onLearnerChang
                 </div>
                 <div className="flex flex-col gap-2">
                     <label className={labelClass}>
-                        Learner Names * <span className="text-white/25 normal-case">({team.learners.filter(l => l.trim()).length}/{MAX_LEARNERS})</span>
+                        Learner Names * <span className="text-white/25 normal-case">({team.learners.filter(l => l.trim()).length}/{lim.max})</span>
                     </label>
                     {team.learners.map((learner, li) => (
                         <div key={li} className="flex items-center gap-2">
@@ -943,12 +937,15 @@ function TeamCard({ team, ti, teamCount, onRemove, onFieldChange, onLearnerChang
                             )}
                         </div>
                     ))}
-                    {team.learners.length < MAX_LEARNERS && (
+                    {team.learners.length < lim.max && (
                         <button type="button" onClick={() => onAddLearner(ti)}
                             className="self-start flex items-center gap-1 text-[#8b7ff5] hover:text-[#a094f7] text-xs font-medium transition-colors mt-1">
                             <span className="text-sm leading-none">+</span> Add learner
                         </button>
                     )}
+                    <p className="text-white/25 text-[11px]">
+                        {team.category ? `${lim.min}–${lim.max} learners for ${team.category}` : 'Pick a category to set the learner range'}
+                    </p>
                 </div>
             </div>
         </div>

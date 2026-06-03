@@ -5,6 +5,7 @@ import { createClient } from 'next-sanity'
 import { apiVersion, dataset, projectId } from '@/sanity/env'
 import { signTicketId } from '@/lib/ticket-token'
 import { getRegistrationFee } from '@/lib/registrationFee'
+import { learnerLimit, MAX_OBSERVERS, SERVER_MAX_TEAMS } from '@/lib/registrationLimits'
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY!
 
@@ -38,22 +39,20 @@ export interface RegistrationPayload {
     observerNames?: string[]
 }
 
-const MAX_TEAMS     = 3
-const MAX_LEARNERS  = 5
-const MAX_OBSERVERS = 5
-
 function validatePayload(data: RegistrationPayload): string | null {
     if (!data.schoolName?.trim())    return 'School name is required.'
     if (!data.contactPerson?.trim()) return 'Contact person is required.'
     if (!data.email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) return 'Valid email is required.'
     if (!Array.isArray(data.teams) || data.teams.length < 1) return 'At least one team is required.'
-    if (data.teams.length > MAX_TEAMS) return `Maximum ${MAX_TEAMS} teams allowed.`
+    if (data.teams.length > SERVER_MAX_TEAMS) return `Too many teams.`
     for (const team of data.teams) {
         if (!team.teamName?.trim()) return 'Each team must have a name.'
         if (!team.category?.trim()) return 'Each team must have a category.'
         if (!team.thematicArea?.trim()) return 'Each team must have a thematic area.'
-        if (!Array.isArray(team.learnerNames) || team.learnerNames.length < 1) return 'Each team must have at least one learner.'
-        if (team.learnerNames.length > MAX_LEARNERS) return `Maximum ${MAX_LEARNERS} learners per team.`
+        const lim = learnerLimit(team.category)
+        const count = Array.isArray(team.learnerNames) ? team.learnerNames.filter(n => n.trim()).length : 0
+        if (count < lim.min) return `Each team must have at least ${lim.min} learners.`
+        if (count > lim.max) return `Maximum ${lim.max} learners for ${team.category}.`
     }
     if (data.observerNames && data.observerNames.length > MAX_OBSERVERS) {
         return `Maximum ${MAX_OBSERVERS} observers per school.`
