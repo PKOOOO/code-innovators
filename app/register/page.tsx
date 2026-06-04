@@ -30,7 +30,7 @@ declare global {
 }
 
 const MAX_TEAMS = Infinity   // schools can register as many teams as they want
-const PAYSTACK_PUBLIC_KEY = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!
+const PAYSTACK_PUBLIC_KEY = (process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '').trim().replace(/^["']|["']$/g, '')
 
 const inputClass   = 'h-12 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus-visible:border-[#8b7ff5] focus-visible:ring-[#8b7ff5]/20 rounded-xl text-sm'
 const triggerClass = 'h-12 w-full bg-white/5 border-white/10 text-white data-placeholder:text-white/40 focus-visible:border-[#8b7ff5] focus-visible:ring-[#8b7ff5]/20 rounded-xl text-sm px-4'
@@ -97,6 +97,34 @@ export default function RegisterPage() {
     const [s2Observers, setS2Observers] = useState(false)
 
     useEffect(() => { getRegistrationFee().then(setFeePerLearner) }, [])
+
+    // Safety net: never let `loading` get stuck true and permanently disable the Pay button
+    // (e.g. a hung request, or dev Fast-Refresh preserving stale state). Auto-clear after 60s.
+    useEffect(() => {
+        if (!loading) return
+        const t = setTimeout(() => { setLoading(false); setStatusMsg('') }, 60000)
+        return () => clearTimeout(t)
+    }, [loading])
+
+    // Auto-validate the coupon (debounced) whenever it changes, so couponInfo is always
+    // authoritative. handlePay can then read it synchronously and open Paystack from the click.
+    useEffect(() => {
+        const code = coupon.trim()
+        if (!code) { setCouponInfo(null); setCouponError(''); setCouponChecking(false); return }
+        let cancelled = false
+        setCouponChecking(true); setCouponError('')
+        const t = setTimeout(() => {
+            lookupCoupon(code)
+                .then(info => {
+                    if (cancelled) return
+                    if (!info.ok) { setCouponInfo(null); setCouponError(info.error) }
+                    else { setCouponInfo({ type: info.type, feePerLearnerKes: info.feePerLearnerKes }); setCouponError('') }
+                })
+                .catch(() => { if (!cancelled) { setCouponInfo(null); setCouponError('Could not check coupon. Try again.') } })
+                .finally(() => { if (!cancelled) setCouponChecking(false) })
+        }, 450)
+        return () => { cancelled = true; clearTimeout(t) }
+    }, [coupon])
 
     const totalLearners = teams.reduce((s, t) => s + t.learners.filter(l => l.trim()).length, 0)
     const totalAmount   = totalLearners * feePerLearner
@@ -305,31 +333,9 @@ export default function RegisterPage() {
         setStep(s => Math.max(s - 1, 1))
     }
 
-    // Validate the coupon up-front (on blur / when applied) so the Pay click can
-    // open the Paystack popup synchronously — opening it after an await silently fails.
-    async function validateCoupon(): Promise<{ type: 'free' | 'discount'; feePerLearnerKes: number } | null> {
-        const code = coupon.trim()
-        if (!code) { setCouponInfo(null); setCouponError(''); return null }
-        // Already validated for the current code (handleCouponChange clears this on edit) — skip the re-check.
-        if (couponInfo) return couponInfo
-        setCouponChecking(true); setCouponError('')
-        try {
-            const info = await lookupCoupon(code)
-            if (!info.ok) { setCouponInfo(null); setCouponError(info.error); return null }
-            const next = { type: info.type, feePerLearnerKes: info.feePerLearnerKes }
-            setCouponInfo(next); setCouponError('')
-            return next
-        } catch {
-            setCouponInfo(null); setCouponError('Could not check coupon. Try again.')
-            return null
-        } finally {
-            setCouponChecking(false)
-        }
-    }
-
     function handleCouponChange(value: string) {
         setCoupon(value.toUpperCase())
-        setCouponInfo(null)
+        setCouponInfo(null)     // cleared immediately; the debounced effect re-validates
         setCouponError('')
     }
 
@@ -346,6 +352,7 @@ export default function RegisterPage() {
 
     // Opens Paystack synchronously. `feePerLearnerKes` null → full price; otherwise the discounted rate.
     function openPaystack(feePerLearnerKes: number | null) {
+        if (!PAYSTACK_PUBLIC_KEY) { setError('Payment is not configured (missing Paystack key). Contact support.'); return }
         if (!window.PaystackPop) { setError('Payment widget still loading. Try again.'); return }
         if (totalLearners < 1) { setError('No learners added.'); return }
 
@@ -384,27 +391,12 @@ export default function RegisterPage() {
         if (loading) return
 
         if (hasCoupon) {
-            // Best path: already validated on blur → open immediately from this click (gesture-safe).
-            if (couponInfo) {
-                if (couponInfo.type === 'free') { redeemFreeCoupon(); return }
-                openPaystack(couponInfo.feePerLearnerKes)   // discount
-                return
-            }
-            // Not validated yet → validate now, then act in the same flow (no second click).
-            setLoading(true); setStatusMsg('Validating coupon…')
-            lookupCoupon(coupon).then(info => {
-                setLoading(false); setStatusMsg('')
-                if (!info.ok) { setCouponInfo(null); setCouponError(info.error); setError(info.error); return }
-                if (info.type === 'free') {
-                    setCouponInfo({ type: 'free', feePerLearnerKes: 0 })
-                    redeemFreeCoupon()
-                    return
-                }
-                setCouponInfo({ type: 'discount', feePerLearnerKes: info.feePerLearnerKes })
-                openPaystack(info.feePerLearnerKes)
-            }).catch(() => {
-                setLoading(false); setStatusMsg(''); setError('Could not check coupon. Please try again.')
-            })
+            // couponInfo is kept current by the debounced effect, so read it synchronously.
+            if (couponChecking) { setError('Checking your coupon…'); return }
+            if (couponError)    { setError(couponError); return }
+            if (!couponInfo)    { setError('Please enter a valid coupon code.'); return }
+            if (couponInfo.type === 'free') { redeemFreeCoupon(); return }
+            openPaystack(couponInfo.feePerLearnerKes)   // discount — opens synchronously from the click
             return
         }
 
@@ -724,7 +716,6 @@ export default function RegisterPage() {
                                         <label className={labelClass}>Coupon Code <span className="text-white/25 normal-case">(optional)</span></label>
                                         <input value={coupon}
                                             onChange={e => handleCouponChange(e.target.value)}
-                                            onBlur={() => validateCoupon()}
                                             placeholder="Enter code"
                                             className="w-full h-14 bg-white/5 border border-white/10 text-white text-base placeholder:text-white/25 rounded-2xl px-4 font-mono tracking-wider focus:outline-none focus:border-[#8b7ff5] transition-colors" />
                                         {couponChecking && <p className="text-white/40 text-xs">Checking coupon…</p>}
@@ -912,8 +903,7 @@ export default function RegisterPage() {
                                             <label className={labelClass}>Coupon Code <span className="text-white/25 normal-case">(optional)</span></label>
                                             <Input value={coupon}
                                                 onChange={e => handleCouponChange(e.target.value)}
-                                                onBlur={() => validateCoupon()}
-                                                placeholder="Enter code" className={inputClass + ' font-mono tracking-wider'} />
+                                                    placeholder="Enter code" className={inputClass + ' font-mono tracking-wider'} />
                                             {couponChecking && <p className="text-white/40 text-xs">Checking coupon…</p>}
                                             {couponError && <p className="text-red-400 text-xs">{couponError}</p>}
                                             {couponInfo?.type === 'free' && <p className="text-green-400 text-xs">✓ Free coupon — no payment required.</p>}
