@@ -98,6 +98,14 @@ export default function RegisterPage() {
 
     useEffect(() => { getRegistrationFee().then(setFeePerLearner) }, [])
 
+    // Safety net: never let `loading` get stuck true and permanently disable the Pay button
+    // (e.g. a hung request, or dev Fast-Refresh preserving stale state). Auto-clear after 60s.
+    useEffect(() => {
+        if (!loading) return
+        const t = setTimeout(() => { setLoading(false); setStatusMsg('') }, 60000)
+        return () => clearTimeout(t)
+    }, [loading])
+
     // Auto-validate the coupon (debounced) whenever it changes, so couponInfo is always
     // authoritative. handlePay can then read it synchronously and open Paystack from the click.
     useEffect(() => {
