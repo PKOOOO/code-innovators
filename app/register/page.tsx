@@ -381,21 +381,29 @@ export default function RegisterPage() {
 
     function handlePay() {
         setError(null)
+        if (loading) return
 
         if (hasCoupon) {
-            // Already validated → act immediately and synchronously (popup must open from the click).
+            // Best path: already validated on blur → open immediately from this click (gesture-safe).
             if (couponInfo) {
                 if (couponInfo.type === 'free') { redeemFreeCoupon(); return }
                 openPaystack(couponInfo.feePerLearnerKes)   // discount
                 return
             }
-            if (couponError)    { setError(couponError); return }
-            if (couponChecking) { setError('Checking your coupon… try again in a second.'); return }
-            // Coupon typed but not validated yet → validate, then ask for one more click
-            // (the popup must open synchronously from a click, so we can't await here).
-            validateCoupon().then(info => {
-                if (info?.type === 'free') setError('Coupon applied — click again to register.')
-                else if (info?.type === 'discount') setError('Coupon applied — click again to pay the discounted rate.')
+            // Not validated yet → validate now, then act in the same flow (no second click).
+            setLoading(true); setStatusMsg('Validating coupon…')
+            lookupCoupon(coupon).then(info => {
+                setLoading(false); setStatusMsg('')
+                if (!info.ok) { setCouponInfo(null); setCouponError(info.error); setError(info.error); return }
+                if (info.type === 'free') {
+                    setCouponInfo({ type: 'free', feePerLearnerKes: 0 })
+                    redeemFreeCoupon()
+                    return
+                }
+                setCouponInfo({ type: 'discount', feePerLearnerKes: info.feePerLearnerKes })
+                openPaystack(info.feePerLearnerKes)
+            }).catch(() => {
+                setLoading(false); setStatusMsg(''); setError('Could not check coupon. Please try again.')
             })
             return
         }
